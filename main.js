@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const VITE_CONVERT_API_ENDPOINT = "https://artypacks-backend-prod.onrender.com/convert";
     const VITE_CHECK_API_ENDPOINT = "https://artypacks-backend-prod.onrender.com/check-license";
     const VITE_RECOVER_SESSION_ENDPOINT = "https://artypacks-backend-prod.onrender.com/recover-session";
-    const VITE_DOWNLOAD_ALL_ENDPOINT = "https://artypacks-backend-prod.onrender.com/download-all"; 
+    const VITE_DOWNLOAD_ALL_ENDPOINT = "https://artypacks-backend-prod.onrender.com/download-all";
     const ETSY_STORE_LINK = 'https://www.etsy.com/shop/artypacks';
     const MAX_MULTI_UPLOAD = 10;
 
@@ -38,7 +38,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let allConversionsComplete = false;
     let batchDownloadCounter = 0;
     let currentUserState = { type: 'none', credits: 0 };
-    // --- NEW --- This variable tracks the real-time credit count for the UI.
     let displayedCredits = 0;
 
     // --- INITIALIZATION ---
@@ -48,9 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
         checkLicenseAndToggleUI();
         setupContactForm();
 
-        // --- NEW --- Temporary Debug Mode for Testing ---
-        // This makes key variables accessible in the browser console for testing purposes.
-        // This can be removed before final production deployment if desired.
+        // --- Temporary Debug Mode for Testing ---
         window.debug = {
             getFiles: () => uploadedFiles,
             setFileStatus: (index, status, message = '') => {
@@ -69,7 +66,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('Credit refunded. New count:', displayedCredits);
             }
         };
-        // --- End of Debug Mode Code ---
     };
 
     // --- EVENT LISTENERS ---
@@ -87,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setupAccordion();
     };
 
-    // --- NEW HELPER FUNCTIONS for Credit Management & UI Updates ---
+    // --- HELPER FUNCTIONS for Credit Management & UI Updates ---
     const reserveCredit = () => {
         if (displayedCredits > 0) {
             displayedCredits--;
@@ -96,7 +92,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const refundCredit = () => {
-        // Only refund if it doesn't exceed the original credit count.
         if (displayedCredits < currentUserState.credits) {
             displayedCredits++;
             updateLicenseStatusMessage();
@@ -105,7 +100,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const updateLicenseStatusMessage = () => {
         if (isLicenseValid) {
-            licenseStatus.innerHTML = getCreditsMessage(displayedCredits);
+            // --- MODIFIED --- Now uses the permanent credit count for the main message.
+            licenseStatus.innerHTML = getCreditsMessage(currentUserState.credits);
         }
     };
     
@@ -201,12 +197,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- MODIFIED --- This function now accepts a 'credits' parameter for real-time updates.
     const getCreditsMessage = (credits) => {
         if (credits > 1) return `License is valid. You have <strong>${credits} credits</strong> remaining.`;
         if (credits === 1) return `License is valid. You have <strong>1 credit</strong> remaining.`;
-        // --- NEW --- Added a specific message for when displayedCredits hits zero but the original license had credits.
-        if (currentUserState.credits > 0 && credits === 0) {
+        if (displayedCredits === 0 && currentUserState.credits > 0) {
             return `All available credits are in the queue.`;
         }
         return `This license has no credits left. <a href="${ETSY_STORE_LINK}" target="_blank">Get a new one to convert another file.</a>`;
@@ -231,11 +225,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 isLicenseValid = true;
                 currentUserState.type = result.user_type;
                 currentUserState.credits = result.sessions_remaining;
-                // --- NEW --- Initialize displayedCredits with the server value.
                 displayedCredits = result.sessions_remaining;
                 licenseStatus.className = 'license-status-message valid';
-                // --- MODIFIED --- Pass the real-time credit count to the message function.
-                licenseStatus.innerHTML = getCreditsMessage(displayedCredits);
+                licenseStatus.innerHTML = getCreditsMessage(currentUserState.credits);
 
                 if (result.sessions_remaining <= 0) {
                     const sessionResponse = await fetch(VITE_RECOVER_SESSION_ENDPOINT, {
@@ -281,7 +273,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const handleFileSelect = (e) => processFiles(e.target.files);
 
     const checkLicenseAndToggleUI = () => {
-        // --- MODIFIED --- This now uses the real-time 'displayedCredits' variable.
         const creditsAvailable = displayedCredits;
         const isDropZoneLocked = !isLicenseValid || creditsAvailable <= 0 || isConverting || allConversionsComplete;
         
@@ -325,7 +316,6 @@ document.addEventListener('DOMContentLoaded', () => {
             activationNotice.style.display = 'none';
             if (currentUserState.type === 'multi_credit') {
                 const moreText = uploadedFiles.length > 0 ? ' more' : '';
-                // --- MODIFIED --- The limit calculation is now simpler and more robust.
                 const limit = Math.min(creditsAvailable, MAX_MULTI_UPLOAD - uploadedFiles.length);
                 dropZoneText.innerHTML = `<strong>Drop up to ${limit}${moreText} .brushset files</strong>`;
                 dropZoneLimits.textContent = `or click to upload (You have ${creditsAvailable} credits remaining)`;
@@ -347,31 +337,24 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const processFiles = (files) => {
-        // --- NEW --- Clear any previous errors first.
         clearDropZoneError();
         const filesToAdd = Array.from(files);
 
-        // --- NEW, CORRECTED VALIDATION LOGIC ---
-        // First, check if the number of NEW files exceeds the available credits.
         if (filesToAdd.length > displayedCredits) {
             dropZoneError.textContent = `Error: Your upload of ${filesToAdd.length} file(s) exceeds your remaining ${displayedCredits} credit(s).`;
             dropZoneError.style.display = 'block';
             return;
         }
 
-        // Second, check if the TOTAL number of files will exceed the hard cap.
         const totalFilesAfterAdd = uploadedFiles.length + filesToAdd.length;
         if (currentUserState.type === 'multi_credit' && totalFilesAfterAdd > MAX_MULTI_UPLOAD) {
             dropZoneError.textContent = `Error: You can only queue a maximum of ${MAX_MULTI_UPLOAD} files at a time.`;
             dropZoneError.style.display = 'block';
             return;
         }
-        
-        // --- This old, buggy check has been removed ---
 
         for (const file of filesToAdd) {
             if (file.name.endsWith('.brushset')) {
-                // --- NEW --- Reserve a credit as soon as the file is added.
                 reserveCredit();
                 uploadedFiles.push({ file: file, status: 'queued', downloadUrl: '', originalFilename: '', message: '' });
             } else {
@@ -408,7 +391,6 @@ document.addEventListener('DOMContentLoaded', () => {
             progressBar.className = 'queue-progress-bar';
             progressBar.innerHTML = `<div class="queue-progress-fill"></div>`;
             
-            // --- NEW --- Action buttons container for better layout.
             const actionButtons = document.createElement('div');
             actionButtons.className = 'action-buttons';
 
@@ -418,11 +400,9 @@ document.addEventListener('DOMContentLoaded', () => {
             removeBtn.title = 'Remove file';
             removeBtn.onclick = () => removeFile(index);
             
-            // --- MODIFIED --- Only show remove button if not converting.
             if (isConverting) {
                 removeBtn.style.display = 'none';
             }
-            // --- MODIFIED --- Always show remove button for completed or error states.
             if (allConversionsComplete || fileData.status === 'error') {
                 removeBtn.style.display = 'block';
             }
@@ -440,16 +420,20 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const removeFile = (indexToRemove) => {
-        // --- NEW --- Clear any previous errors first.
         clearDropZoneError();
         const fileData = uploadedFiles[indexToRemove];
         if (fileData) {
-            // --- MODIFIED --- Refund credit only if the file wasn't successfully completed.
             if (fileData.status !== 'completed') {
+                refundCredit();
+            } else {
+                // If removing a completed file, we need to sync both credit counts
+                if (currentUserState.credits < displayedCredits) {
+                    currentUserState.credits++;
+                }
                 refundCredit();
             }
             uploadedFiles.splice(indexToRemove, 1);
-            fileInput.value = ''; // Allows re-uploading the same file
+            fileInput.value = '';
             updateFileList();
             checkLicenseAndToggleUI();
         }
@@ -466,8 +450,10 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let i = 0; i < uploadedFiles.length; i++) {
             const fileData = uploadedFiles[i];
             if (fileData.status !== 'queued') continue;
+            
             fileData.status = 'converting';
             updateFileStatusUI(i, 'converting', 0);
+            
             try {
                 const result = await convertSingleFile(fileData.file, i);
                 fileData.status = 'completed';
@@ -475,26 +461,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 fileData.originalFilename = result.originalFilename;
                 updateFileStatusUI(i, 'completed', 100);
                 hasSuccessfulConversions = true;
+
+                // --- THE FINAL FIX ---
+                // As a file succeeds, permanently "commit" the credit spend.
+                if (currentUserState.credits > 0) {
+                    currentUserState.credits--; 
+                }
+                // Update the main message to show the new permanent count.
+                updateLicenseStatusMessage();
+                // --- END OF FIX ---
+
             } catch (error) {
                 fileData.status = 'error';
                 fileData.message = error.message;
                 updateFileStatusUI(i, 'error', 0, error.message);
-                // --- NEW --- Automatically refund the credit for the failed conversion.
+                
                 refundCredit();
-                updateLicenseStatusMessage();
             }
         }
         
         isConverting = false;
         
-        // --- MODIFIED --- Logic is now simpler. If any file succeeded, we mark as complete.
         if (hasSuccessfulConversions) {
             allConversionsComplete = true;
             convertButton.textContent = 'Go to Downloads';
         } else {
-            // If all files failed, alert the user and reset to a usable state.
             alert("All conversions failed. Your credits have been refunded. Please check the errors and try again.");
-            // We don't reset the whole app, just the converting state.
             isConverting = false;
             allConversionsComplete = false;
             convertButton.textContent = 'Convert Your Brushset';
