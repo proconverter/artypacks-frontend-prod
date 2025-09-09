@@ -41,13 +41,36 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- NEW --- Local credit tracking for optimistic UI
     let displayedCredits = 0;
 
-    // --- INITIALIZATION ---
-    const initializeApp = () => {
-        document.getElementById('current-year').textContent = new Date().getFullYear();
-        setupEventListeners();
-        checkLicenseAndToggleUI();
-        setupContactForm();
+    // ... inside initializeApp function ...
+const initializeApp = () => {
+    document.getElementById('current-year').textContent = new Date().getFullYear();
+    setupEventListeners();
+    checkLicenseAndToggleUI();
+    setupContactForm();
+
+    // --- NEW --- Temporary Debug Mode for Testing ---
+    // This makes key variables accessible in the browser console.
+    window.debug = {
+        getFiles: () => uploadedFiles,
+        setFileStatus: (index, status, message = '') => {
+            if (uploadedFiles[index]) {
+                uploadedFiles[index].status = status;
+                uploadedFiles[index].message = message;
+                updateFileList();
+                console.log(`File ${index} status set to: ${status}`);
+            } else {
+                console.error(`File at index ${index} not found.`);
+            }
+        },
+        refund: () => {
+            refundCredit();
+            updateLicenseStatusMessage();
+            console.log('Credit refunded. New count:', displayedCredits);
+        }
     };
+    // --- End of Debug Mode Code ---
+};
+
 
     // --- EVENT LISTENERS ---
     const setupEventListeners = () => {
