@@ -601,7 +601,7 @@ a { color: #007bff; text-decoration: none; font-weight: 700; }
 
 #single-download-button, #convert-another-single-button, 
 #download-all-batch-button, #convert-another-batch-button, 
-#download-all-center-button, #convert-another-center-button {
+#convert-another-center-button {
     width: 100%;
     max-width: 300px;
 }
@@ -765,27 +765,37 @@ a { color: #007bff; text-decoration: none; font-weight: 700; }
     margin-bottom: 5px;
 }
 
+/* THIS IS THE FIX FOR THE LAYOUT */
 #download-center-list li {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
-}
-
-.file-info-container {
     display: flex;
+    flex-direction: row; /* Ensures items are side-by-side */
     justify-content: space-between;
     align-items: center;
-    width: 100%;
+    gap: 15px; /* Adds space between filename and status */
+}
+
+.download-center-file-details {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    flex-grow: 1;
+    min-width: 0;
+}
+
+.download-center-file-details .filename {
+    padding-right: 0; /* Remove old padding */
 }
 
 .expiry-info {
     font-size: 12px;
     font-weight: 600;
-    text-align: right;
-    white-space: nowrap;
-    padding-left: 15px;
+    color: #71717a; /* Default color */
 }
 
 .expiry-info.safe { color: #16a34a; }
 .expiry-info.warn { color: #f97316; }
 .expiry-info.danger { color: #dc2626; }
+
+.download-action {
+    flex-shrink: 0; /* Prevents the button from shrinking */
+}
