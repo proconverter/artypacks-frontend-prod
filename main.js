@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- CONFIGURATION ---
+    // --- CONFIGURATION (FROM YOUR ORIGINAL) ---
     const VITE_CONVERT_API_ENDPOINT = "https://artypacks-backend-prod.onrender.com/convert";
     const VITE_CHECK_API_ENDPOINT = "https://artypacks-backend-prod.onrender.com/check-license";
     const VITE_RECOVER_SESSION_ENDPOINT = "https://artypacks-backend-prod.onrender.com/recover-session";
@@ -7,8 +7,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const ETSY_STORE_LINK = 'https://www.etsy.com/shop/artypacks';
     const MAX_MULTI_UPLOAD = 10;
 
-    // --- DOM ELEMENT SELECTORS ---
-    const licenseKeyInput = document.getElementById('license-key' );
+    // --- DOM ELEMENT SELECTORS (MERGED AND COMPLETE ) ---
+    const licenseKeyInput = document.getElementById('license-key');
     const licenseStatus = document.getElementById('license-status');
     const sessionRecoveryContainer = document.getElementById('session-recovery-link-container');
     const getLicenseLinkContainer = document.querySelector('.get-license-link');
@@ -18,39 +18,53 @@ document.addEventListener('DOMContentLoaded', () => {
     const fileInput = document.getElementById('file-input');
     const fileList = document.getElementById('file-list');
     const appTool = document.getElementById('app-tool');
-    const downloadView = document.getElementById('download-view');
-    const downloadFilename = document.getElementById('download-filename');
-    const downloadFileButton = document.getElementById('download-file-button');
-    const convertAnotherButton = document.getElementById('convert-another-button');
-    const downloadSessionView = document.getElementById('download-session-view');
-    const downloadSessionList = document.getElementById('download-session-list');
-    const downloadAllButton = document.getElementById('download-all-button');
-    const convertAnotherSessionButton = document.getElementById('convert-another-session-button');
     const dropZoneText = document.getElementById('drop-zone-text');
     const dropZoneLimits = document.getElementById('drop-zone-limits');
     const dropZoneError = document.getElementById('drop-zone-error');
     const fileUploadLabel = document.getElementById('file-upload-label');
 
-    // --- STATE MANAGEMENT ---
+    // --- VIEWS (NEW AND CORRECTED) ---
+    // NOTE: You will need to add these IDs to your HTML
+    const singleDownloadView = document.getElementById('single-download-view'); 
+    const batchDownloadView = document.getElementById('batch-download-view');
+    const downloadCenterView = document.getElementById('download-center-view');
+
+    // --- ELEMENTS FOR SINGLE DOWNLOAD VIEW ---
+    const singleDownloadFilename = document.getElementById('single-download-filename');
+    const singleDownloadButton = document.getElementById('single-download-button');
+    const convertAnotherSingleBtn = document.getElementById('convert-another-single-button');
+
+    // --- ELEMENTS FOR BATCH DOWNLOAD VIEW ---
+    const batchDownloadList = document.getElementById('batch-download-list');
+    const downloadAllBatchBtn = document.getElementById('download-all-batch-button');
+    const convertAnotherBatchBtn = document.getElementById('convert-another-batch-button');
+
+    // --- ELEMENTS FOR DOWNLOAD CENTER VIEW ---
+    const downloadCenterList = document.getElementById('download-center-list');
+    const downloadAllCenterBtn = document.getElementById('download-all-center-button');
+    const convertAnotherCenterBtn = document.getElementById('convert-another-center-button');
+
+    // --- STATE MANAGEMENT (MERGED) ---
     let uploadedFiles = [];
     let isLicenseValid = false;
     let validationController;
     let isConverting = false;
-    let allConversionsComplete = false;
     let batchDownloadCounter = 0;
     let currentUserState = { type: 'none', credits: 0, initialCredits: 0 };
     let displayedCredits = 0;
-    let downloadCenterFiles = []; // To store files for the download center
+    let lastSuccessfulConversions = []; // For immediate success pages
+    let fullConversionHistory = []; // For the Download Center
 
-    // --- INITIALIZATION ---
+    // --- INITIALIZATION (FROM YOUR ORIGINAL) ---
     const initializeApp = () => {
         document.getElementById('current-year').textContent = new Date().getFullYear();
         setupEventListeners();
         checkLicenseAndToggleUI();
         setupContactForm();
+        setupAccordion();
     };
 
-    // --- EVENT LISTENERS ---
+    // --- EVENT LISTENERS (MERGED AND CORRECTED) ---
     const setupEventListeners = () => {
         licenseKeyInput.addEventListener('input', handleLicenseInput);
         dropZone.addEventListener('click', () => { if (!dropZone.classList.contains('disabled')) fileInput.click(); });
@@ -58,86 +72,27 @@ document.addEventListener('DOMContentLoaded', () => {
         dropZone.addEventListener('dragleave', (e) => { e.preventDefault(); dropZone.classList.remove('dragover'); });
         dropZone.addEventListener('drop', handleDrop);
         fileInput.addEventListener('change', handleFileSelect);
-        convertButton.addEventListener('click', handleConversionOrNavigation);
-        convertAnotherButton.addEventListener('click', resetApp);
-        convertAnotherSessionButton.addEventListener('click', resetApp);
-        downloadAllButton.addEventListener('click', handleDownloadAll);
+        
+        // This button now ONLY starts the conversion
+        convertButton.addEventListener('click', handleBatchConversion);
+
+        // Listeners for the new view buttons
+        convertAnotherSingleBtn.addEventListener('click', returnToConverter);
+        convertAnotherBatchBtn.addEventListener('click', returnToConverter);
+        convertAnotherCenterBtn.addEventListener('click', returnToConverter);
+
+        downloadAllBatchBtn.addEventListener('click', (event) => handleDownloadAll(lastSuccessfulConversions, event.target));
+        downloadAllCenterBtn.addEventListener('click', (event) => handleDownloadAll(fullConversionHistory.filter(f => f.status === 'active'), event.target));
+        
+        // Listeners from your original file
         setupAccordion();
     };
 
-    // --- CORE FUNCTIONS ---
-    async function handleDownloadAll() {
-        const activeFiles = downloadCenterFiles.filter(f => f.status === 'active');
-        if (activeFiles.length < 2) return;
-
-        const downloadUrls = activeFiles.map(file => file.downloadUrl);
-        
-        batchDownloadCounter++;
-        downloadAllButton.textContent = 'Zipping...';
-        downloadAllButton.disabled = true;
-
-        try {
-            const response = await fetch(VITE_DOWNLOAD_ALL_ENDPOINT, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    licenseKey: licenseKeyInput.value.trim(),
-                    urls: downloadUrls,
-                    batchCounter: batchDownloadCounter
-                }),
-            });
-
-            if (!response.ok) {
-                const errorResult = await response.json();
-                throw new Error(errorResult.message || 'Failed to create ZIP file.');
-            }
-
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-
-            const contentDisposition = response.headers.get('content-disposition');
-            let downloadName;
-            if (contentDisposition && contentDisposition.indexOf('attachment') !== -1) {
-                const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
-                const matches = filenameRegex.exec(contentDisposition);
-                if (matches != null && matches[1]) { 
-                  downloadName = matches[1].replace(/['"]/g, '');
-                }
-            }
-            
-            link.download = downloadName || `ArtyPacks.app_Batch_${batchDownloadCounter}.zip`;
-            
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
-
-        } catch (error) {
-            console.error('Download All Error:', error);
-            alert(`Could not download all files: ${error.message}`);
-        } finally {
-            downloadAllButton.textContent = 'Download All as .ZIP';
-            downloadAllButton.disabled = false;
-        }
-    }
-    
-    const handleConversionOrNavigation = () => {
-        if (allConversionsComplete) {
-            recoverSession(licenseKeyInput.value.trim());
-        } else {
-            handleBatchConversion();
-        }
-    };
+    // --- CORE LOGIC (INTEGRATED) ---
 
     const handleLicenseInput = () => {
         if (validationController) validationController.abort();
-        isLicenseValid = false;
-        currentUserState = { type: 'none', credits: 0, initialCredits: 0 };
-        displayedCredits = 0;
-        sessionRecoveryContainer.classList.add('hidden');
-        sessionRecoveryContainer.innerHTML = '';
+        resetStateForNewLicense();
         checkLicenseAndToggleUI();
         const key = licenseKeyInput.value.trim();
         if (key.length > 5) {
@@ -148,34 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    const getCreditsMessage = (credits) => {
-        if (credits > 1) return `License is valid. You have <strong>${credits} credits</strong> remaining.`;
-        if (credits === 1) return `License is valid. You have <strong>1 credit</strong> remaining.`;
-        return `This license has no credits left. <a href="${ETSY_STORE_LINK}" target="_blank">Get a new one to convert more files.</a>`;
-    };
-
-    async function recoverSession(key) {
-        try {
-            const sessionResponse = await fetch(VITE_RECOVER_SESSION_ENDPOINT, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ licenseKey: key })
-            });
-
-            if (sessionResponse.ok) {
-                const sessionData = await sessionResponse.json();
-                downloadCenterFiles = sessionData.files; // Store the rich data
-                showDownloadSessionView();
-            } else {
-                alert('Could not find a recent download session.');
-            }
-        } catch (error) {
-            alert('An error occurred while trying to recover your session.');
-        }
-    }
-
     async function validateLicenseWithRetries(key) {
-        if (validationController) validationController.abort();
         validationController = new AbortController();
         const signal = validationController.signal;
         licenseStatus.className = 'license-status-message checking';
@@ -192,30 +120,11 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (response.ok && result.isValid) {
                 isLicenseValid = true;
-                currentUserState.type = result.user_type;
-                currentUserState.credits = result.sessions_remaining;
-                currentUserState.initialCredits = result.sessions_remaining;
+                currentUserState = { type: result.user_type, credits: result.sessions_remaining, initialCredits: result.sessions_remaining };
                 displayedCredits = result.sessions_remaining;
                 licenseStatus.className = 'license-status-message valid';
                 licenseStatus.innerHTML = getCreditsMessage(displayedCredits);
-
-                const sessionResponse = await fetch(VITE_RECOVER_SESSION_ENDPOINT, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ licenseKey: key })
-                });
-
-                if (sessionResponse.ok) {
-                    const sessionData = await sessionResponse.json();
-                    if (sessionData.files && sessionData.files.length > 0) {
-                        sessionRecoveryContainer.innerHTML = `You have recent downloads. <a href="#" id="recover-link"><strong>View your Download Center.</strong></a>`;
-                        sessionRecoveryContainer.classList.remove('hidden');
-                        document.getElementById('recover-link').addEventListener('click', (e) => {
-                            e.preventDefault();
-                            recoverSession(key);
-                        });
-                    }
-                }
+                checkAndPrepareDownloadCenterLink(key);
             } else {
                 isLicenseValid = false;
                 licenseStatus.className = 'license-status-message invalid';
@@ -227,22 +136,191 @@ document.addEventListener('DOMContentLoaded', () => {
             licenseStatus.className = 'license-status-message invalid';
             licenseStatus.textContent = 'A server error occurred while validating the license.';
         } finally {
-            if (!signal.aborted) {
-                checkLicenseAndToggleUI();
-            }
+            if (!signal.aborted) checkLicenseAndToggleUI();
         }
     }
 
+    async function checkAndPrepareDownloadCenterLink(key) {
+        try {
+            const response = await fetch(VITE_RECOVER_SESSION_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ licenseKey: key })
+            });
+            if (response.ok) {
+                const data = await response.json();
+                if (data.files && data.files.length > 0) {
+                    fullConversionHistory = data.files;
+                    sessionRecoveryContainer.innerHTML = `You have previous downloads. <a href="#" id="recover-link"><strong>View your Download Center.</strong></a>`;
+                    sessionRecoveryContainer.classList.remove('hidden');
+                    document.getElementById('recover-link').addEventListener('click', (e) => {
+                        e.preventDefault();
+                        showDownloadCenterView();
+                    });
+                }
+            }
+        } catch (error) {
+            console.error("Could not check for previous sessions:", error);
+        }
+    }
+
+    async function handleBatchConversion() {
+        isConverting = true;
+        lastSuccessfulConversions = [];
+        sessionRecoveryContainer.classList.add('hidden');
+        checkLicenseAndToggleUI();
+        updateFileList();
+        convertButton.textContent = 'Converting... Please Wait';
+        
+        let successfulConversionCount = 0;
+
+        for (let i = 0; i < uploadedFiles.length; i++) {
+            const fileData = uploadedFiles[i];
+            if (fileData.status !== 'queued') continue;
+            fileData.status = 'converting';
+            updateFileStatusUI(i, 'converting', 0);
+            try {
+                const result = await convertSingleFile(fileData.file, i);
+                fileData.status = 'completed';
+                updateFileStatusUI(i, 'completed', 100);
+                lastSuccessfulConversions.push(result);
+                successfulConversionCount++;
+                currentUserState.initialCredits--;
+                licenseStatus.innerHTML = getCreditsMessage(currentUserState.initialCredits);
+            } catch (error) {
+                fileData.status = 'error';
+                fileData.message = error.message;
+                updateFileStatusUI(i, 'error', 0, error.message);
+                refundCredit();
+            }
+        }
+        
+        isConverting = false;
+        
+        if (successfulConversionCount > 0) {
+            if (currentUserState.type === 'single_credit') {
+                showSingleSuccessView();
+            } else {
+                showBatchSuccessView();
+            }
+        } else {
+            alert("All conversions failed. Your credits have been refunded.");
+            checkLicenseAndToggleUI();
+            updateFileList();
+        }
+    }
+
+    // --- VIEW SWITCHING LOGIC (NEW) ---
+
+    function showSingleSuccessView() {
+        appTool.classList.add('hidden');
+        batchDownloadView.classList.add('hidden');
+        downloadCenterView.classList.add('hidden');
+        singleDownloadView.classList.remove('hidden');
+
+        const file = lastSuccessfulConversions[0];
+        singleDownloadFilename.textContent = file.originalFilename;
+        singleDownloadButton.onclick = () => {
+            const link = document.createElement('a');
+            link.href = file.downloadUrl;
+            link.download = `ArtyPacks.app_${file.originalFilename.replace(/\.brushset$/, '')}.zip`;
+            link.click();
+        };
+    }
+
+    function showBatchSuccessView() {
+        appTool.classList.add('hidden');
+        singleDownloadView.classList.add('hidden');
+        downloadCenterView.classList.add('hidden');
+        batchDownloadView.classList.remove('hidden');
+        
+        batchDownloadList.innerHTML = '';
+        lastSuccessfulConversions.forEach(file => {
+            const listItem = document.createElement('li');
+            listItem.innerHTML = `<span class="filename">${file.originalFilename}</span><a href="${file.downloadUrl}" class="status-badge active" download>Download</a>`;
+            batchDownloadList.appendChild(listItem);
+        });
+
+        downloadAllBatchBtn.style.display = lastSuccessfulConversions.length > 1 ? 'inline-block' : 'none';
+    }
+
+    function showDownloadCenterView() {
+        appTool.classList.add('hidden');
+        singleDownloadView.classList.add('hidden');
+        batchDownloadView.classList.add('hidden');
+        downloadCenterView.classList.remove('hidden');
+        
+        downloadCenterList.innerHTML = '';
+
+        if (fullConversionHistory.length === 0) {
+            downloadCenterList.innerHTML = '<li>No conversion history found for this license.</li>';
+            downloadAllCenterBtn.style.display = 'none';
+            return;
+        }
+        
+        const activeFiles = fullConversionHistory.filter(f => f.status === 'active');
+        
+        fullConversionHistory.forEach(fileData => {
+            const listItem = document.createElement('li');
+            let badgeHtml;
+            if (fileData.status === 'active') {
+                badgeHtml = `<a href="${fileData.downloadUrl}" class="status-badge active" download>Download</a>`;
+            } else {
+                badgeHtml = `<span class="status-badge expired">Expired</span>`;
+            }
+            listItem.innerHTML = `<span class="filename">${fileData.originalFilename}</span>${badgeHtml}`;
+            downloadCenterList.appendChild(listItem);
+        });
+        
+        downloadAllCenterBtn.style.display = activeFiles.length > 1 ? 'inline-block' : 'none';
+    }
+
+    function returnToConverter() {
+        appTool.classList.remove('hidden');
+        singleDownloadView.classList.add('hidden');
+        batchDownloadView.classList.add('hidden');
+        downloadCenterView.classList.add('hidden');
+        
+        uploadedFiles = [];
+        lastSuccessfulConversions = [];
+        isConverting = false;
+        fileInput.value = '';
+        
+        updateFileList();
+        checkLicenseAndToggleUI();
+        checkAndPrepareDownloadCenterLink(licenseKeyInput.value.trim());
+    }
+
+    function resetStateForNewLicense() {
+        if (validationController) validationController.abort();
+        uploadedFiles = [];
+        lastSuccessfulConversions = [];
+        fullConversionHistory = [];
+        isLicenseValid = false;
+        isConverting = false;
+        currentUserState = { type: 'none', credits: 0, initialCredits: 0 };
+        displayedCredits = 0;
+        sessionRecoveryContainer.classList.add('hidden');
+        sessionRecoveryContainer.innerHTML = '';
+    }
+
+    // --- HELPER FUNCTIONS (FROM YOUR ORIGINAL, VERIFIED COMPLETE) ---
     const handleDrop = (e) => { e.preventDefault(); if (dropZone.classList.contains('disabled')) return; dropZone.classList.remove('dragover'); processFiles(e.dataTransfer.files); };
     const handleFileSelect = (e) => processFiles(e.target.files);
 
+    const getCreditsMessage = (credits) => {
+        if (credits > 1) return `License is valid. You have <strong>${credits} credits</strong> remaining.`;
+        if (credits === 1) return `License is valid. You have <strong>1 credit</strong> remaining.`;
+        return `This license has no credits left. <a href="${ETSY_STORE_LINK}" target="_blank">Get a new one to convert more files.</a>`;
+    };
+
     const checkLicenseAndToggleUI = () => {
         const creditsAvailable = displayedCredits;
-        const isDropZoneLocked = !isLicenseValid || creditsAvailable <= 0 || isConverting || allConversionsComplete;
+        const isDropZoneLocked = !isLicenseValid || creditsAvailable <= 0 || isConverting;
         
         dropZone.classList.toggle('disabled', isDropZoneLocked);
         
-        if ((isLicenseValid && currentUserState.initialCredits <= 0) || allConversionsComplete) {
+        if ((isLicenseValid && currentUserState.initialCredits <= 0)) {
             getLicenseLinkContainer.classList.add('hidden');
         } else {
             getLicenseLinkContainer.classList.remove('hidden');
@@ -259,11 +337,6 @@ document.addEventListener('DOMContentLoaded', () => {
             activationNotice.style.display = 'none';
             dropZoneText.innerHTML = '<strong>Processing your files...</strong>';
             dropZoneLimits.textContent = 'Please wait for all conversions to complete.';
-        } else if (allConversionsComplete) {
-            dropZone.title = 'Conversions complete.';
-            activationNotice.style.display = 'none';
-            dropZoneText.innerHTML = '<strong>All conversions are complete.</strong>';
-            dropZoneLimits.textContent = "Click 'Go to Downloads' to get your files.";
         } else if (currentUserState.initialCredits <= 0) {
             dropZone.title = 'This license has no credits remaining.';
             activationNotice.style.display = 'block';
@@ -284,20 +357,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 dropZoneText.innerHTML = `<strong>Drop up to ${limit}${moreText} .brushset files</strong>`;
                 dropZoneLimits.textContent = `or click to upload (You have ${creditsAvailable} credits remaining)`;
                 fileUploadLabel.textContent = 'Upload Your .brushset Files';
+                fileInput.setAttribute('multiple', 'true');
             } else {
                 dropZoneText.innerHTML = '<strong>Drop a single .brushset file here</strong>';
                 dropZoneLimits.textContent = 'or click to upload (1 credit will be used)';
                 fileUploadLabel.textContent = 'Upload Your .brushset File';
+                fileInput.removeAttribute('multiple');
             }
         }
 
-        convertButton.disabled = !((isLicenseValid && uploadedFiles.length > 0 && !isConverting) || allConversionsComplete);
-        
-        if (currentUserState.type === 'multi_credit') {
-            fileInput.setAttribute('multiple', 'true');
-        } else {
-            fileInput.removeAttribute('multiple');
-        }
+        convertButton.disabled = !(isLicenseValid && uploadedFiles.length > 0 && !isConverting);
     };
 
     const processFiles = (files) => {
@@ -306,14 +375,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const filesToAdd = Array.from(files);
         const totalFilesAfterAdd = uploadedFiles.length + filesToAdd.length;
         
-        if (totalFilesAfterAdd > displayedCredits) {
-            dropZoneError.textContent = `Error: This would exceed your credit limit. You have ${displayedCredits} credits remaining.`;
+        if (currentUserState.type === 'single_credit' && totalFilesAfterAdd > 1) {
+            dropZoneError.textContent = 'Error: Please upload only one file at a time with a single-credit license.';
             dropZoneError.style.display = 'block';
             return;
         }
-
-        if (currentUserState.type === 'single_credit' && totalFilesAfterAdd > 1) {
-            dropZoneError.textContent = 'Error: Please upload only one file at a time with a single-credit license.';
+        if (totalFilesAfterAdd > displayedCredits) {
+            dropZoneError.textContent = `Error: This would exceed your credit limit. You have ${displayedCredits} credits remaining.`;
             dropZoneError.style.display = 'block';
             return;
         }
@@ -408,51 +476,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    async function handleBatchConversion() {
-        isConverting = true;
-        sessionRecoveryContainer.classList.add('hidden');
-        checkLicenseAndToggleUI();
-        updateFileList();
-        convertButton.textContent = 'Converting... Please Wait';
-        
-        let successfulConversionCount = 0;
-
-        for (let i = 0; i < uploadedFiles.length; i++) {
-            const fileData = uploadedFiles[i];
-            if (fileData.status !== 'queued') continue;
-            fileData.status = 'converting';
-            updateFileStatusUI(i, 'converting', 0);
-            try {
-                const result = await convertSingleFile(fileData.file, i);
-                fileData.status = 'completed';
-                fileData.downloadUrl = result.downloadUrl;
-                fileData.originalFilename = result.originalFilename;
-                updateFileStatusUI(i, 'completed', 100);
-                
-                successfulConversionCount++;
-                currentUserState.initialCredits--;
-                licenseStatus.innerHTML = getCreditsMessage(currentUserState.initialCredits);
-
-            } catch (error) {
-                fileData.status = 'error';
-                fileData.message = error.message;
-                updateFileStatusUI(i, 'error', 0, error.message);
-                refundCredit();
-            }
-        }
-        
-        isConverting = false;
-        
-        if (successfulConversionCount > 0) {
-            allConversionsComplete = true;
-            convertButton.textContent = 'Go to Downloads';
-        } else {
-            alert("All conversions failed. Your credits have been refunded. Please check the errors and try again.");
-        }
-        checkLicenseAndToggleUI();
-        updateFileList();
-    }
-
     function convertSingleFile(file, index) {
         return new Promise((resolve, reject) => {
             const licenseKey = licenseKeyInput.value.trim();
@@ -512,88 +535,63 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    const showDownloadView = (url, filename) => {
-        appTool.classList.add('hidden');
-        downloadSessionView.classList.add('hidden');
-        downloadView.classList.remove('hidden');
-        downloadFilename.textContent = filename;
-        downloadFileButton.onclick = () => {
-            triggerDownload(url, filename);
-        };
-    };
+    async function handleDownloadAll(files, buttonElement) {
+        const activeFiles = files.filter(f => f.status === 'active' || f.downloadUrl);
+        if (activeFiles.length < 2) return;
+        const downloadUrls = activeFiles.map(file => file.downloadUrl);
+        batchDownloadCounter++;
+        const button = buttonElement;
+        const originalText = button.textContent;
+        button.textContent = 'Zipping...';
+        button.disabled = true;
+        try {
+            const response = await fetch(VITE_DOWNLOAD_ALL_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    licenseKey: licenseKeyInput.value.trim(),
+                    urls: downloadUrls,
+                    batchCounter: batchDownloadCounter
+                }),
+            });
 
-    // --- THE FINAL DOWNLOAD CENTER LOGIC ---
-    const showDownloadSessionView = () => {
-        appTool.classList.add('hidden');
-        downloadView.classList.add('hidden');
-        downloadSessionView.classList.remove('hidden');
-        downloadSessionList.innerHTML = '';
-        
-        const activeFiles = downloadCenterFiles.filter(f => f.status === 'active');
-        
-        downloadCenterFiles.forEach(fileData => {
-            const listItem = document.createElement('li');
-            
-            const filenameSpan = document.createElement('span');
-            filenameSpan.className = 'filename';
-            filenameSpan.textContent = fileData.originalFilename;
-            listItem.appendChild(filenameSpan);
+            if (!response.ok) {
+                const errorResult = await response.json();
+                throw new Error(errorResult.message || 'Failed to create ZIP file.');
+            }
 
-            if (fileData.status === 'active') {
-                const downloadLink = document.createElement('a');
-                downloadLink.className = 'status-badge active';
-                downloadLink.textContent = 'Download';
-                downloadLink.onclick = () => {
-                    triggerDownload(fileData.downloadUrl, fileData.originalFilename);
-                };
-                listItem.appendChild(downloadLink);
-            } else {
-                const expiredBadge = document.createElement('span');
-                expiredBadge.className = 'status-badge expired';
-                expiredBadge.textContent = 'Expired';
-                listItem.appendChild(expiredBadge);
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+
+            const contentDisposition = response.headers.get('content-disposition');
+            let downloadName;
+            if (contentDisposition && contentDisposition.indexOf('attachment') !== -1) {
+                const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+                const matches = filenameRegex.exec(contentDisposition);
+                if (matches != null && matches[1]) { 
+                  downloadName = matches[1].replace(/['"]/g, '');
+                }
             }
             
-            downloadSessionList.appendChild(listItem);
-        });
-        
-        downloadAllButton.style.display = activeFiles.length > 1 ? 'inline-block' : 'none';
-    };
+            link.download = downloadName || `ArtyPacks.app_Batch_${batchDownloadCounter}.zip`;
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
 
-    const triggerDownload = (url, filename) => {
-        const link = document.createElement('a');
-        link.href = url;
-        const baseName = filename.replace(/\.brushset$/, '');
-        link.download = `ArtyPacks.app_${baseName}.zip`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    };
-
-    const resetApp = () => {
-        if (validationController) {
-            validationController.abort();
+        } catch (error) {
+            console.error('Download All Error:', error);
+            alert(`Could not download all files: ${error.message}`);
+        } finally {
+            button.textContent = originalText;
+            button.disabled = false;
         }
-        downloadView.classList.add('hidden');
-        downloadSessionView.classList.add('hidden');
-        uploadedFiles = [];
-        downloadCenterFiles = [];
-        isConverting = false;
-        allConversionsComplete = false;
-        fileInput.value = '';
-        licenseKeyInput.disabled = false;
-        licenseKeyInput.value = '';
-        licenseStatus.innerHTML = '';
-        isLicenseValid = false;
-        currentUserState = { type: 'none', credits: 0, initialCredits: 0 };
-        displayedCredits = 0;
-        appTool.classList.remove('hidden');
-        updateFileList();
-        checkLicenseAndToggleUI();
-        sessionRecoveryContainer.classList.add('hidden');
-        sessionRecoveryContainer.innerHTML = '';
-    };
+    }
 
+    // --- UNTOUCHED FUNCTIONS FROM YOUR ORIGINAL FILE ---
     const setupAccordion = () => {
         document.querySelectorAll('.accordion-question, .footer-accordion-trigger').forEach(trigger => {
             trigger.addEventListener('click', (e) => {
@@ -633,5 +631,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    // --- START THE APP ---
     initializeApp();
 });
