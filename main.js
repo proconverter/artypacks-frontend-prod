@@ -10,6 +10,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- DOM ELEMENT SELECTORS ---
     const licenseKeyInput = document.getElementById('license-key' );
     const licenseStatus = document.getElementById('license-status');
+    // --- NEW ---
+    const sessionRecoveryContainer = document.getElementById('session-recovery-link-container');
     const getLicenseLinkContainer = document.querySelector('.get-license-link');
     const convertButton = document.getElementById('convert-button');
     const activationNotice = document.getElementById('activation-notice');
@@ -139,6 +141,9 @@ document.addEventListener('DOMContentLoaded', () => {
         isLicenseValid = false;
         currentUserState = { type: 'none', credits: 0, initialCredits: 0 };
         displayedCredits = 0;
+        // --- NEW --- Hide recovery link on input change
+        sessionRecoveryContainer.classList.add('hidden');
+        sessionRecoveryContainer.innerHTML = '';
         checkLicenseAndToggleUI();
         const key = licenseKeyInput.value.trim();
         if (key.length > 5) {
@@ -154,6 +159,34 @@ document.addEventListener('DOMContentLoaded', () => {
         if (credits === 1) return `License is valid. You have <strong>1 credit</strong> remaining.`;
         return `This license has no credits left. <a href="${ETSY_STORE_LINK}" target="_blank">Get a new one to convert more files.</a>`;
     };
+
+    // --- NEW --- Function to handle session recovery click
+    async function recoverSession(key) {
+        try {
+            const sessionResponse = await fetch(VITE_RECOVER_SESSION_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ licenseKey: key })
+            });
+
+            if (sessionResponse.ok) {
+                const sessionData = await sessionResponse.json();
+                if (sessionData.session_type === 'multi') {
+                    uploadedFiles = sessionData.files.map(file => ({
+                        ...file,
+                        status: 'completed'
+                    }));
+                    showDownloadSessionView();
+                } else if (sessionData.session_type === 'single') {
+                    showDownloadView(sessionData.download_url, sessionData.original_filename);
+                }
+            } else {
+                alert('Could not find a recent download session.');
+            }
+        } catch (error) {
+            alert('An error occurred while trying to recover your session.');
+        }
+    }
 
     async function validateLicenseWithRetries(key) {
         if (validationController) validationController.abort();
@@ -178,29 +211,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 displayedCredits = result.sessions_remaining;
                 licenseStatus.innerHTML = getCreditsMessage(displayedCredits);
 
-                if (result.sessions_remaining <= 0) {
-                    const sessionResponse = await fetch(VITE_RECOVER_SESSION_ENDPOINT, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ licenseKey: key })
-                    });
+                // --- NEW --- Check for recoverable session immediately after validation
+                const sessionResponse = await fetch(VITE_RECOVER_SESSION_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ licenseKey: key })
+                });
 
-                    if (sessionResponse.ok) {
-                        const sessionData = await sessionResponse.json();
-                        
-                        if (sessionData.session_type === 'multi') {
-                            uploadedFiles = sessionData.files.map(file => ({
-                                ...file,
-                                status: 'completed'
-                            }));
-                            showDownloadSessionView();
-                            return; 
-                        } else if (sessionData.session_type === 'single') {
-                            showDownloadView(sessionData.download_url, sessionData.original_filename);
-                            return;
-                        }
-                    }
+                if (sessionResponse.ok) {
+                    // If there's a recent session, show the recovery link
+                    sessionRecoveryContainer.innerHTML = `<a href="#" id="recover-link">Forgot to download your last session? Click here.</a>`;
+                    sessionRecoveryContainer.classList.remove('hidden');
+                    document.getElementById('recover-link').addEventListener('click', (e) => {
+                        e.preventDefault();
+                        recoverSession(key);
+                    });
                 }
+
             } else {
                 isLicenseValid = false;
                 licenseStatus.className = 'license-status-message invalid';
@@ -352,9 +379,6 @@ document.addEventListener('DOMContentLoaded', () => {
             removeBtn.title = 'Remove file';
             removeBtn.onclick = () => removeFile(index);
             
-            // --- FINAL UI LOGIC ---
-            // Show remove button if the file is queued OR if it has an error.
-            // Hide it during conversion or after completion.
             if (fileData.status === 'queued' || fileData.status === 'error') {
                 removeBtn.style.display = 'block';
             } else {
@@ -398,6 +422,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function handleBatchConversion() {
         isConverting = true;
+        // --- NEW --- Hide recovery link during conversion
+        sessionRecoveryContainer.classList.add('hidden');
         checkLicenseAndToggleUI();
         updateFileList();
         convertButton.textContent = 'Converting... Please Wait';
@@ -416,7 +442,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 fileData.originalFilename = result.originalFilename;
                 updateFileStatusUI(i, 'completed', 100);
                 
-                // On success, permanently deduct the credit from the initial total
                 currentUserState.initialCredits--;
                 successfulConversionCount++;
 
@@ -424,10 +449,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 fileData.status = 'error';
                 fileData.message = error.message;
                 updateFileStatusUI(i, 'error', 0, error.message);
-                // On error, refund the reserved credit
                 refundCredit();
             }
-            // Update the main license status message in real-time
             licenseStatus.innerHTML = getCreditsMessage(currentUserState.initialCredits);
         }
         
@@ -438,7 +461,6 @@ document.addEventListener('DOMContentLoaded', () => {
             convertButton.textContent = 'Go to Downloads';
         } else {
             alert("All conversions failed. Your credits have been refunded. Please check the errors and try again.");
-            // No need to reset the app, user can now remove the errored files.
         }
         checkLicenseAndToggleUI();
         updateFileList();
@@ -566,7 +588,9 @@ document.addEventListener('DOMContentLoaded', () => {
         appTool.classList.remove('hidden');
         updateFileList();
         checkLicenseAndToggleUI();
-        convertButton.textContent = 'Convert Your Brushset';
+        // --- NEW --- Hide recovery link on reset
+        sessionRecoveryContainer.classList.add('hidden');
+        sessionRecoveryContainer.innerHTML = '';
     };
 
     const setupAccordion = () => {
