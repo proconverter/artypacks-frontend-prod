@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let isLicenseValid = false;
     let validationController;
     let isConverting = false;
-    let allConversionsComplete = false; // <-- NEW STATE FOR "GO TO DOWNLOADS" FLOW
+    let allConversionsComplete = false;
     let batchDownloadCounter = 0;
     let currentUserState = { type: 'none', credits: 0, initialCredits: 0 };
     let displayedCredits = 0;
@@ -61,6 +61,8 @@ document.addEventListener('DOMContentLoaded', () => {
         setupEventListeners();
         checkLicenseAndToggleUI();
         setupContactForm();
+        // THIS IS THE FIX for the accordions. It must be called here.
+        setupAccordion();
     };
 
     const setupEventListeners = () => {
@@ -71,7 +73,6 @@ document.addEventListener('DOMContentLoaded', () => {
         dropZone.addEventListener('drop', handleDrop);
         fileInput.addEventListener('change', handleFileSelect);
         
-        // THIS IS THE FIX for the "Go to Downloads" button flow
         convertButton.addEventListener('click', handleConversionOrNavigation);
 
         convertAnotherSingleBtn.addEventListener('click', returnToConverter);
@@ -80,24 +81,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         downloadAllBatchBtn.addEventListener('click', (event) => handleDownloadAll(lastSuccessfulConversions, event.target));
         downloadAllCenterBtn.addEventListener('click', (event) => handleDownloadAll(fullConversionHistory.filter(f => f.status === 'active'), event.target));
-        
-        // THIS IS THE FIX for the unclickable accordions
-        setupAccordion();
     };
 
     // --- CORE LOGIC ---
 
-    // NEW FUNCTION to handle the dual-purpose main button
     const handleConversionOrNavigation = () => {
         if (allConversionsComplete) {
-            // If conversions are done, this button takes us to the success page
             if (currentUserState.type === 'single_credit') {
                 showSingleSuccessView();
             } else {
                 showBatchSuccessView();
             }
         } else {
-            // Otherwise, it starts the conversion process
             handleBatchConversion();
         }
     };
@@ -209,7 +204,6 @@ document.addEventListener('DOMContentLoaded', () => {
         isConverting = false;
         
         if (successfulConversionCount > 0) {
-            // THIS IS THE FIX: Set the state and update the button text
             allConversionsComplete = true;
         } else {
             alert("All conversions failed. Your credits have been refunded.");
@@ -292,7 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
         uploadedFiles = [];
         lastSuccessfulConversions = [];
         isConverting = false;
-        allConversionsComplete = false; // Reset the flow
+        allConversionsComplete = false;
         fileInput.value = '';
         
         updateFileList();
@@ -307,7 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
         fullConversionHistory = [];
         isLicenseValid = false;
         isConverting = false;
-        allConversionsComplete = false; // Reset the flow
+        allConversionsComplete = false;
         currentUserState = { type: 'none', credits: 0, initialCredits: 0 };
         displayedCredits = 0;
         sessionRecoveryContainer.classList.add('hidden');
@@ -350,7 +344,6 @@ document.addEventListener('DOMContentLoaded', () => {
             dropZoneLimits.textContent = 'Please wait for all conversions to complete.';
             convertButton.textContent = 'Converting... Please Wait';
         } else if (allConversionsComplete) {
-            // THIS IS THE FIX: Update UI for the "Go to Downloads" state
             dropZone.title = 'Conversions complete.';
             activationNotice.style.display = 'none';
             dropZoneText.innerHTML = '<strong>All conversions are complete.</strong>';
@@ -547,3 +540,111 @@ document.addEventListener('DOMContentLoaded', () => {
             progressBar.style.display = 'block';
             progressBarFill.style.width = `${progress}%`;
         } else if (status === 'completed') {
+            statusBadge.textContent = 'Ready';
+            progressBar.style.display = 'none';
+        } else if (status === 'error') {
+            statusBadge.textContent = 'Error';
+            listItem.title = message;
+        } else {
+            statusBadge.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+        }
+    }
+
+    async function handleDownloadAll(files, buttonElement) {
+        const activeFiles = files.filter(f => f.status === 'active' || f.downloadUrl);
+        if (activeFiles.length < 2) return;
+        const downloadUrls = activeFiles.map(file => file.downloadUrl);
+        batchDownloadCounter++;
+        const button = buttonElement;
+        const originalText = button.textContent;
+        button.textContent = 'Zipping...';
+        button.disabled = true;
+        try {
+            const response = await fetch(VITE_DOWNLOAD_ALL_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    licenseKey: licenseKeyInput.value.trim(),
+                    urls: downloadUrls,
+                    batchCounter: batchDownloadCounter
+                }),
+            });
+
+            if (!response.ok) {
+                const errorResult = await response.json();
+                throw new Error(errorResult.message || 'Failed to create ZIP file.');
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+
+            const contentDisposition = response.headers.get('content-disposition');
+            let downloadName;
+            if (contentDisposition && contentDisposition.indexOf('attachment') !== -1) {
+                const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+                const matches = filenameRegex.exec(contentDisposition);
+                if (matches != null && matches[1]) { 
+                  downloadName = matches[1].replace(/['"]/g, '');
+                }
+            }
+            
+            link.download = downloadName || `ArtyPacks.app_Batch_${batchDownloadCounter}.zip`;
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+
+        } catch (error) {
+            console.error('Download All Error:', error);
+            alert(`Could not download all files: ${error.message}`);
+        } finally {
+            button.textContent = originalText;
+            button.disabled = false;
+        }
+    }
+
+    const setupAccordion = () => {
+        document.querySelectorAll('.accordion-question, .footer-accordion-trigger').forEach(trigger => {
+            trigger.addEventListener('click', (e) => {
+                const item = e.currentTarget.closest('.accordion-item, .footer-accordion-item');
+                if (item) item.classList.toggle('open');
+            });
+        });
+    };
+
+    const setupContactForm = () => {
+        const contactForm = document.getElementById('contact-form');
+        if (!contactForm) return;
+        const formStatus = document.getElementById('form--status');
+        
+        contactForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(contactForm);
+            
+            try {
+                const response = await fetch(contactForm.action, { 
+                    method: 'POST', 
+                    body: formData, 
+                    headers: { 'Accept': 'application/json' } 
+                });
+                
+                if (response.ok) {
+                    formStatus.style.display = 'flex';
+                    contactForm.reset();
+                    setTimeout(() => { formStatus.style.display = 'none'; }, 5000);
+                } else {
+                    throw new Error('Form submission failed.');
+                }
+            } catch (error) {
+                console.error('Contact form error:', error);
+                alert('Sorry, there was an issue sending your message. Please try again later.');
+            }
+        });
+    };
+
+    // --- START THE APP ---
+    initializeApp();
+});
