@@ -639,6 +639,17 @@ a { color: #007bff; text-decoration: none; font-weight: 700; }
     color: #0056b3;
 }
 
+/* Add this new style to your style.css file */
+.session-recovery-link {
+    font-size: 14px;
+    text-align: center;
+    margin-top: 10px;
+}
+.session-recovery-link a {
+    text-decoration: underline;
+    font-weight: 600;
+}
+
 
 /* =============================================== */
 /* Conversion Queue Styles (v2.0)                  */
