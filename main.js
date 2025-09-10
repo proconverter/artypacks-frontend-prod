@@ -10,7 +10,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- DOM ELEMENT SELECTORS ---
     const licenseKeyInput = document.getElementById('license-key' );
     const licenseStatus = document.getElementById('license-status');
-    // --- NEW ---
     const sessionRecoveryContainer = document.getElementById('session-recovery-link-container');
     const getLicenseLinkContainer = document.querySelector('.get-license-link');
     const convertButton = document.getElementById('convert-button');
@@ -141,7 +140,6 @@ document.addEventListener('DOMContentLoaded', () => {
         isLicenseValid = false;
         currentUserState = { type: 'none', credits: 0, initialCredits: 0 };
         displayedCredits = 0;
-        // --- NEW --- Hide recovery link on input change
         sessionRecoveryContainer.classList.add('hidden');
         sessionRecoveryContainer.innerHTML = '';
         checkLicenseAndToggleUI();
@@ -160,7 +158,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return `This license has no credits left. <a href="${ETSY_STORE_LINK}" target="_blank">Get a new one to convert more files.</a>`;
     };
 
-    // --- NEW --- Function to handle session recovery click
     async function recoverSession(key) {
         try {
             const sessionResponse = await fetch(VITE_RECOVER_SESSION_ENDPOINT, {
@@ -203,15 +200,19 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             if (signal.aborted) return;
             const result = await response.json();
+            
+            // --- THIS IS THE CORRECTED LOGIC ---
             if (response.ok && result.isValid) {
+                // Handle a VALID license
                 isLicenseValid = true;
                 currentUserState.type = result.user_type;
                 currentUserState.credits = result.sessions_remaining;
                 currentUserState.initialCredits = result.sessions_remaining;
                 displayedCredits = result.sessions_remaining;
+                licenseStatus.className = 'license-status-message valid';
                 licenseStatus.innerHTML = getCreditsMessage(displayedCredits);
 
-                // --- NEW --- Check for recoverable session immediately after validation
+                // Now, check for a recoverable session
                 const sessionResponse = await fetch(VITE_RECOVER_SESSION_ENDPOINT, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -219,7 +220,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 if (sessionResponse.ok) {
-                    // If there's a recent session, show the recovery link
                     sessionRecoveryContainer.innerHTML = `<a href="#" id="recover-link">Forgot to download your last session? Click here.</a>`;
                     sessionRecoveryContainer.classList.remove('hidden');
                     document.getElementById('recover-link').addEventListener('click', (e) => {
@@ -227,8 +227,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         recoverSession(key);
                     });
                 }
-
             } else {
+                // Handle an INVALID license
                 isLicenseValid = false;
                 licenseStatus.className = 'license-status-message invalid';
                 licenseStatus.innerHTML = result.message || 'Invalid license key.';
@@ -422,7 +422,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function handleBatchConversion() {
         isConverting = true;
-        // --- NEW --- Hide recovery link during conversion
         sessionRecoveryContainer.classList.add('hidden');
         checkLicenseAndToggleUI();
         updateFileList();
@@ -588,7 +587,6 @@ document.addEventListener('DOMContentLoaded', () => {
         appTool.classList.remove('hidden');
         updateFileList();
         checkLicenseAndToggleUI();
-        // --- NEW --- Hide recovery link on reset
         sessionRecoveryContainer.classList.add('hidden');
         sessionRecoveryContainer.innerHTML = '';
     };
