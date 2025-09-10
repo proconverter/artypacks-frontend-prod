@@ -323,7 +323,7 @@ a { color: #007bff; text-decoration: none; font-weight: 700; }
 }
 
 #form-status { 
-    display: flex; 
+    display: none; /* Changed from flex to none to be hidden by default */
     justify-content: space-between; 
     align-items: center; 
     padding: 15px; 
@@ -372,11 +372,12 @@ a { color: #007bff; text-decoration: none; font-weight: 700; }
 .license-status-message a { font-weight: 700; text-decoration: underline; }
 
 /* --- Session Recovery Link --- */
+/* THIS IS THE FIX FOR THE OVERLAPPING TEXT */
 #session-recovery-link-container {
     font-size: 14px;
     text-align: center;
-    margin-top: -15px;
-    margin-bottom: -10px;
+    margin-top: 10px; /* MODIFIED: Increased from -15px to 10px */
+    margin-bottom: 0;  /* MODIFIED: Increased from -10px to 0 */
     color: #52525b;
 }
 #session-recovery-link-container a {
@@ -413,6 +414,15 @@ a { color: #007bff; text-decoration: none; font-weight: 700; }
     color: #a1a1aa; 
     margin-top: 8px !important; 
 }
+/* ADDED: Style for drop zone error message */
+#drop-zone-error {
+    color: #dc2626;
+    font-weight: 600;
+    margin-top: 10px;
+    font-size: 14px;
+    display: none;
+}
+
 
 /* --- File List Styles --- */
 #file-list { margin-top: 15px; text-align: left; font-size: 14px; width: 100%; }
@@ -546,10 +556,13 @@ a { color: #007bff; text-decoration: none; font-weight: 700; }
 
 
 /* =============================================== */
-/* Download View Styles (Single & Batch)           */
+/* Download Views (Single, Batch, & Center)        */
 /* =============================================== */
 
-#download-view, #download-session-view {
+/* ADDED: Common container for all download views */
+#single-download-view,
+#batch-download-view,
+#download-center-view {
     width: 100%;
     max-width: 550px;
     background-color: #ffffff;
@@ -599,16 +612,32 @@ a { color: #007bff; text-decoration: none; font-weight: 700; }
     word-break: break-all;
 }
 
-#download-file-button, #convert-another-button, #download-all-button, #convert-another-session-button {
+/* ADDED: Common button styles for all download views */
+#single-download-button,
+#convert-another-single-button,
+#download-all-batch-button,
+#convert-another-batch-button,
+#download-all-center-button,
+#convert-another-center-button {
     width: 100%;
     max-width: 300px;
 }
 
-#convert-another-button, #convert-another-session-button {
-    margin-top: -10px; /* Reduce space between buttons */
+#convert-another-single-button,
+#convert-another-batch-button,
+#convert-another-center-button {
+    margin-top: -10px;
+    background-color: #e5e7eb;
+    color: #374151;
+}
+#convert-another-single-button:hover,
+#convert-another-batch-button:hover,
+#convert-another-center-button:hover {
+    background-color: #d1d5db;
 }
 
-/* --- New Styles for Batch Download Box --- */
+
+/* ADDED: Styles for download lists */
 .download-session-box {
     width: 100%;
     border: 2px dashed #d4d4d8;
@@ -618,7 +647,8 @@ a { color: #007bff; text-decoration: none; font-weight: 700; }
     margin-bottom: 10px;
 }
 
-#download-session-list {
+#batch-download-list,
+#download-center-list {
     list-style: none;
     padding: 0;
     margin: 0;
@@ -628,14 +658,16 @@ a { color: #007bff; text-decoration: none; font-weight: 700; }
     width: 100%;
 }
 
-#download-session-list li {
+#batch-download-list li,
+#download-center-list li {
     display: flex;
     justify-content: space-between;
     align-items: center;
     font-size: 15px;
 }
 
-#download-session-list .filename {
+#batch-download-list .filename,
+#download-center-list .filename {
     text-align: left;
     word-break: break-all;
     padding-right: 15px;
@@ -725,28 +757,31 @@ a { color: #007bff; text-decoration: none; font-weight: 700; }
     background-color: #e0e0e0;
 }
 
-/* --- NEW STYLES FOR DOWNLOAD CENTER --- */
-#download-session-list .status-badge {
+/* --- Status Badge Styles for Download Lists --- */
+/* This now applies to all download badges */
+.status-badge {
     font-weight: 700;
     font-size: 12px;
     padding: 4px 10px;
     border-radius: 12px;
     color: #ffffff;
     white-space: nowrap;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
 }
 
-#download-session-list .status-badge.active {
+.status-badge.active {
     background-color: #007bff;
-    text-decoration: none;
     cursor: pointer;
     transition: background-color 0.2s ease;
 }
 
-#download-session-list .status-badge.active:hover {
+.status-badge.active:hover {
     background-color: #0056b3;
 }
 
-#download-session-list .status-badge.expired {
+.status-badge.expired {
     background-color: #a1a1aa;
     cursor: not-allowed;
 }
