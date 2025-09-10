@@ -21,29 +21,29 @@ html::before {
 
 body {
     font-family: 'Inter', sans-serif; color: #18181b; line-height: 1.6;
-    display: flex;
-    justify-content: center;
+    display: flex; 
+    justify-content: center; 
     align-items: center;
     padding: 40px 20px;
     -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
     min-height: 100vh;
 }
 
-.page-wrapper {
-    width: 100%;
-    max-width: 800px;
-    display: flex;
-    flex-direction: column;
+.page-wrapper { 
+    width: 100%; 
+    max-width: 800px; 
+    display: flex; 
+    flex-direction: column; 
     gap: 0;
     align-items: center;
 }
 
 /* --- Typography --- */
-h1 {
-    font-size: 48px;
-    font-weight: 800;
-    line-height: 1.2;
-    letter-spacing: -1.5px;
+h1 { 
+    font-size: 48px; 
+    font-weight: 800; 
+    line-height: 1.2; 
+    letter-spacing: -1.5px; 
 }
 
 .h1-subline {
@@ -63,12 +63,12 @@ a { color: #007bff; text-decoration: none; font-weight: 700; }
 /* --- Master Card Styling --- */
 .master-card {
     background-color: #f4f4f4;
-    padding: 50px 40px;
+    padding: 50px 40px; 
     border-radius: 24px 24px 0 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    text-align: center; 
     gap: 30px;
     border: 12px solid #ffffff;
     border-bottom: none;
@@ -121,14 +121,14 @@ a { color: #007bff; text-decoration: none; font-weight: 700; }
 .feature-item p { font-size: 16px; color: #52525b; max-width: 100%; }
 
 /* --- Accordion Styles --- */
-.info-accordion {
-    max-width: 100%;
+.info-accordion { 
+    max-width: 100%; 
     text-align: center;
 }
 
-.accordion-item {
-    width: 100%;
-    border-bottom: 2px solid #d4d4d8;
+.accordion-item { 
+    width: 100%; 
+    border-bottom: 2px solid #d4d4d8; 
 }
 
 .accordion-question {
@@ -154,13 +154,13 @@ a { color: #007bff; text-decoration: none; font-weight: 700; }
     transition: transform 0.3s ease;
 }
 
-.accordion-answer {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.4s ease-out, padding-bottom 0.4s ease-out;
-    color: #52525b;
-    font-size: 16px;
-    line-height: 1.6;
+.accordion-answer { 
+    max-height: 0; 
+    overflow: hidden; 
+    transition: max-height 0.4s ease-out, padding-bottom 0.4s ease-out; 
+    color: #52525b; 
+    font-size: 16px; 
+    line-height: 1.6; 
     text-align: center;
     padding-top: 10px;
 }
@@ -168,18 +168,18 @@ a { color: #007bff; text-decoration: none; font-weight: 700; }
 .accordion-answer p {
     margin-left: auto;
     margin-right: auto;
-    max-width: 100%;
+    max-width: 100%; 
 }
 
-.accordion-item.open .accordion-answer {
+.accordion-item.open .accordion-answer { 
     max-height: 3000px;
-    padding-bottom: 25px;
-    transition: max-height 0.5s ease-in, padding-bottom 0.5s ease-in;
+    padding-bottom: 25px; 
+    transition: max-height 0.5s ease-in, padding-bottom 0.5s ease-in; 
 }
 .accordion-item.open .accordion-question .icon { transform: rotate(45deg); }
 
 /* --- Page Footer --- */
-.page-footer {
+.page-footer { 
     background-color: #ffffff;
     padding: 20px 25px;
     border-radius: 0 0 24px 24px;
@@ -275,14 +275,14 @@ a { color: #007bff; text-decoration: none; font-weight: 700; }
 
 
 /* --- Contact Form Styles --- */
-.contact-form {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    margin-top: 10px;
+.contact-form { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 15px; 
+    margin-top: 10px; 
 }
 
-.contact-form input,
+.contact-form input, 
 .contact-form textarea {
     width: 100%;
     padding: 12px;
@@ -300,52 +300,52 @@ a { color: #007bff; text-decoration: none; font-weight: 700; }
     border-color: #007bff;
 }
 
-.contact-form textarea {
-    min-height: 120px;
-    resize: vertical;
+.contact-form textarea { 
+    min-height: 120px; 
+    resize: vertical; 
 }
 
-.contact-form button {
+.contact-form button { 
     align-self: center;
-    padding: 12px 24px;
-    font-size: 16px;
-    font-weight: 700;
-    border-radius: 8px;
-    border: none;
-    cursor: pointer;
-    background-color: #18181b;
-    color: #ffffff;
-    transition: background-color 0.2s ease;
+    padding: 12px 24px; 
+    font-size: 16px; 
+    font-weight: 700; 
+    border-radius: 8px; 
+    border: none; 
+    cursor: pointer; 
+    background-color: #18181b; 
+    color: #ffffff; 
+    transition: background-color 0.2s ease; 
 }
 
-.contact-form button:hover {
-    background-color: #3f3f46;
+.contact-form button:hover { 
+    background-color: #3f3f46; 
 }
 
-#form-status {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px;
-    background-color: #f0fdf4;
-    color: #166534;
-    border-radius: 8px;
-    margin-top: 15px;
+#form-status { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    padding: 15px; 
+    background-color: #f0fdf4; 
+    color: #166534; 
+    border-radius: 8px; 
+    margin-top: 15px; 
 }
 
 /* --- App Section Styles --- */
-.app-section {
+.app-section { 
     background-color: #ffffff;
-    border-radius: 16px;
-    padding: 30px;
-    width: 100%;
-    max-width: 550px;
+    border-radius: 16px; 
+    padding: 30px; 
+    width: 100%; 
+    max-width: 550px; 
     border: 2px solid #d4d4d8;
 }
 .app-container { display: flex; flex-direction: column; gap: 30px; }
 .app-step { display: flex; align-items: flex-start; gap: 15px; }
-.step-content {
-    width: 100%;
+.step-content { 
+    width: 100%; 
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -365,11 +365,24 @@ a { color: #007bff; text-decoration: none; font-weight: 700; }
 /* --- License Status Message --- */
 .license-status-message { font-size: 14px; text-align: center; margin-top: 10px; min-height: 20px; }
 .license-status-message.checking,
-.license-status-message.valid {
-    color: #16a34a;
+.license-status-message.valid { 
+    color: #16a34a; 
 }
 .license-status-message.invalid { color: #dc2626; }
 .license-status-message a { font-weight: 700; text-decoration: underline; }
+
+/* --- Session Recovery Link --- */
+#session-recovery-link-container {
+    font-size: 14px;
+    text-align: center;
+    margin-top: -15px;
+    margin-bottom: -10px;
+    color: #52525b;
+}
+#session-recovery-link-container a {
+    color: #007bff;
+    font-weight: 600;
+}
 
 /* --- Drop Zone Styles --- */
 .drop-zone { border: 2px dashed #d4d4d8; border-radius: 12px; padding: 40px 30px; text-align: center; transition: border-color 0.3s ease, background-color 0.3s ease; }
@@ -377,49 +390,49 @@ a { color: #007bff; text-decoration: none; font-weight: 700; }
 .drop-zone:not(.disabled) { cursor: pointer; }
 .drop-zone:not(.disabled):hover, .drop-zone:not(.disabled).dragover { border-color: #007bff; background-color: #f8f9fa; }
 
-.drop-zone-icon {
-    width: 32px;
-    height: 32px;
-    margin-bottom: 12px;
-    opacity: 0.6;
-    fill: #a1a1aa;
+.drop-zone-icon { 
+    width: 32px; 
+    height: 32px; 
+    margin-bottom: 12px; 
+    opacity: 0.6; 
+    fill: #a1a1aa; 
 }
 
-.drop-zone-prompt p {
-    margin: 0;
-    color: #52525b;
-    max-width: 100%;
-    font-size: 16px;
+.drop-zone-prompt p { 
+    margin: 0; 
+    color: #52525b; 
+    max-width: 100%; 
+    font-size: 16px; 
 }
-.drop-zone-prompt p strong {
-    color: #18181b;
-    font-weight: 600;
+.drop-zone-prompt p strong { 
+    color: #18181b; 
+    font-weight: 600; 
 }
-.drop-zone-limits {
+.drop-zone-limits { 
     font-size: 14px !important;
-    color: #a1a1aa;
-    margin-top: 8px !important;
+    color: #a1a1aa; 
+    margin-top: 8px !important; 
 }
 
 /* --- File List Styles --- */
 #file-list { margin-top: 15px; text-align: left; font-size: 14px; width: 100%; }
 .file-list-container { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.file-list-container li {
-    background-color: #f4f4f5;
-    padding: 8px 12px;
-    border-radius: 8px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+.file-list-container li { 
+    background-color: #f4f4f5; 
+    padding: 8px 12px; 
+    border-radius: 8px; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
 }
-.remove-file-btn {
-    background: none;
-    border: none;
-    font-size: 20px;
-    color: #71717a;
-    cursor: pointer;
-    line-height: 1;
-    padding: 2px 5px;
+.remove-file-btn { 
+    background: none; 
+    border: none; 
+    font-size: 20px; 
+    color: #71717a; 
+    cursor: pointer; 
+    line-height: 1; 
+    padding: 2px 5px; 
 }
 .remove-file-btn:hover { color: #18181b; }
 
@@ -595,6 +608,7 @@ a { color: #007bff; text-decoration: none; font-weight: 700; }
     margin-top: -10px; /* Reduce space between buttons */
 }
 
+/* --- New Styles for Batch Download Box --- */
 .download-session-box {
     width: 100%;
     border: 2px dashed #d4d4d8;
@@ -626,30 +640,6 @@ a { color: #007bff; text-decoration: none; font-weight: 700; }
     word-break: break-all;
     padding-right: 15px;
 }
-
-#download-session-list .download-link {
-    font-weight: 700;
-    color: #007bff;
-    text-decoration: underline;
-    cursor: pointer;
-    white-space: nowrap;
-}
-
-#download-session-list .download-link:hover {
-    color: #0056b3;
-}
-
-/* Add this new style to your style.css file */
-.session-recovery-link {
-    font-size: 14px;
-    text-align: center;
-    margin-top: 10px;
-}
-.session-recovery-link a {
-    text-decoration: underline;
-    font-weight: 600;
-}
-
 
 /* =============================================== */
 /* Conversion Queue Styles (v2.0)                  */
@@ -711,7 +701,6 @@ a { color: #007bff; text-decoration: none; font-weight: 700; }
     transition: width 0.3s ease;
 }
 
-/* --- NEW --- Styles for Action Buttons Container and Retry Button */
 .action-buttons {
     display: flex;
     align-items: center;
@@ -734,4 +723,30 @@ a { color: #007bff; text-decoration: none; font-weight: 700; }
 .retry-file-btn:hover {
     color: #1d4ed8;
     background-color: #e0e0e0;
+}
+
+/* --- NEW STYLES FOR DOWNLOAD CENTER --- */
+#download-session-list .status-badge {
+    font-weight: 700;
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    color: #ffffff;
+    white-space: nowrap;
+}
+
+#download-session-list .status-badge.active {
+    background-color: #007bff;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+#download-session-list .status-badge.active:hover {
+    background-color: #0056b3;
+}
+
+#download-session-list .status-badge.expired {
+    background-color: #a1a1aa;
+    cursor: not-allowed;
 }
