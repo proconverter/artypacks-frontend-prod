@@ -42,11 +42,8 @@
                         <div class="step-content">
                             <label for="license-key">Enter Your License Key</label>
                             <input type="text" id="license-key" name="license-key" placeholder="Enter your license key here">
-                            
                             <div id="license-status" class="license-status-message"></div>
-                            
                             <div id="session-recovery-link-container" class="session-recovery-link hidden"></div>
-
                         </div>
                     </div>
 
@@ -75,57 +72,59 @@
                 </div>
             </section>
 
-            <!-- ================================================== -->
-            <!-- START: REVISED DOWNLOAD VIEWS SECTION              -->
-            <!-- ================================================== -->
-
-            <!-- NEW: SINGLE FILE DOWNLOAD SUCCESS VIEW -->
+            <!-- === SINGLE DOWNLOAD SUCCESS VIEW === -->
             <section id="single-download-view" class="hidden">
                 <div class="download-container">
                     <img src="/assets/icon-success.svg?v=1.1" alt="Success Checkmark" class="download-success-icon">
-                    <h2>Download Successful!</h2>
-                    <p>Your file is ready. The download link will expire in 60 minutes.</p>
-                    <div class="download-filename-display" id="single-download-filename">filename.brushset</div>
-                    <button id="single-download-button" class="cta-button">Download Your File</button>
+                    <h2>Conversion Successful!</h2>
+                    <p>Your file is ready to be downloaded.</p>
+                    <p class="download-expiration-notice">(This download link will expire in 60 minutes. Please save your file promptly. )</p>
+                    <p id="single-download-filename" class="download-filename-display"></p>
+                    <button id="single-download-button" class="cta-button">Download File</button>
                     <button id="convert-another-single-button" class="cta-button secondary">Convert Another File</button>
                 </div>
             </section>
 
-            <!-- NEW: BATCH DOWNLOAD SUCCESS VIEW -->
+            <!-- === BATCH DOWNLOAD SUCCESS VIEW === -->
             <section id="batch-download-view" class="hidden">
                 <div class="download-container">
                     <img src="/assets/icon-success.svg?v=1.1" alt="Success Checkmark" class="download-success-icon">
                     <h2>Batch Conversion Successful!</h2>
                     <p>Your files are ready. Download links will expire in 60 minutes.</p>
                     <div class="download-session-box">
-                        <ul id="batch-download-list">
-                            <!-- JS will populate this list -->
-                        </ul>
+                        <ul id="batch-download-list"></ul>
                     </div>
                     <button id="download-all-batch-button" class="cta-button">Download All as .ZIP</button>
                     <button id="convert-another-batch-button" class="cta-button secondary">Convert Another Batch</button>
                 </div>
             </section>
 
-            <!-- NEW: DOWNLOAD CENTER (HISTORY ) VIEW -->
+            <!-- === DOWNLOAD CENTER VIEW (HISTORY) === -->
             <section id="download-center-view" class="hidden">
                 <div class="download-container">
-                    <img src="/assets/icon-history.svg?v=1.1" alt="History" class="download-success-icon">
+                    <!-- CHANGE 1: Icon updated -->
+                    <img src="/assets/icon-lossless.svg" alt="History Icon" class="download-success-icon">
                     <h2>Download Center</h2>
-                    <p>This is the full conversion history for your license key.</p>
-                    <div class="download-session-box">
-                        <ul id="download-center-list">
-                            <!-- JS will populate this list -->
+                    
+                    <!-- CHANGE 2: Text updated -->
+                    <div class="download-center-notice">
+                        <h4>Important: Please download your files now.</h4>
+                        <p>The Download Center only stores your converted files temporarily, as a safeguard in case your browser crashes or refreshes unexpectedly. It is not permanent storage.</p>
+                        <ul>
+                            <li>Each file will expire 60 minutes after it was converted.</li>
+                            <li>Expired files are automatically deleted and cannot be recovered.</li>
+                            <li>Expiry times are shown in your local time zone so you know exactly when each file will disappear.</li>
                         </ul>
                     </div>
-                    <button id="download-all-center-button" class="cta-button">Download All Active as .ZIP</button>
+
+                    <div class="download-session-box">
+                        <ul id="download-center-list"></ul>
+                    </div>
+                    
+                    <!-- CHANGE 3: "Download All" button removed -->
                     <button id="convert-another-center-button" class="cta-button secondary">Back to Converter</button>
                 </div>
             </section>
-
-            <!-- ================================================== -->
-            <!-- END: REVISED DOWNLOAD VIEWS SECTION                -->
-            <!-- ================================================== -->
 
             <hr class="section-divider">
 
@@ -282,7 +281,6 @@
                         <ul>
                             <li><strong>Data Collection:</strong> We do not automatically collect personal information when you use our conversion tool. If you use our contact form, we collect your email address only to reply to your message. We do not use it for marketing or share it with third parties.</li>
                             
-                            <!-- === UPDATED PRIVACY CLAUSE START === -->
                             <li>
                                 <strong>File Handling & Storage:</strong> Your privacy and intellectual property are our top priorities. Our process is designed to handle your files securely and temporarily:
                                 <ul>
@@ -291,9 +289,8 @@
                                 </ul>
                                 We do not access, back up, or use your files for any other purpose.
                             </li>
-                            <!-- === UPDATED PRIVACY CLAUSE END === -->
 
-                            <li><strong>Payment Information:</strong> All payments are processed securely through our Merchant of Record (e.g., Etsy   ). We do not have access to, nor do we store, your credit card details or personal payment information.</li>
+                            <li><strong>Payment Information:</strong> All payments are processed securely through our Merchant of Record (e.g., Etsy ). We do not have access to, nor do we store, your credit card details or personal payment information.</li>
                             <li><strong>Analytics:</strong> We may collect anonymous, non-personal usage data (such as browser type or conversion success/fail rates) to help us improve our service. This data is aggregated and cannot be used to identify you.</li>
                         </ul>
                         
