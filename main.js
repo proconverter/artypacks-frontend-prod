@@ -201,9 +201,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (signal.aborted) return;
             const result = await response.json();
             
-            // --- THIS IS THE CORRECTED LOGIC ---
             if (response.ok && result.isValid) {
-                // Handle a VALID license
                 isLicenseValid = true;
                 currentUserState.type = result.user_type;
                 currentUserState.credits = result.sessions_remaining;
@@ -212,7 +210,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 licenseStatus.className = 'license-status-message valid';
                 licenseStatus.innerHTML = getCreditsMessage(displayedCredits);
 
-                // Now, check for a recoverable session
                 const sessionResponse = await fetch(VITE_RECOVER_SESSION_ENDPOINT, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -228,7 +225,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 }
             } else {
-                // Handle an INVALID license
                 isLicenseValid = false;
                 licenseStatus.className = 'license-status-message invalid';
                 licenseStatus.innerHTML = result.message || 'Invalid license key.';
@@ -428,6 +424,7 @@ document.addEventListener('DOMContentLoaded', () => {
         convertButton.textContent = 'Converting... Please Wait';
         
         let successfulConversionCount = 0;
+        let finalCreditCount = currentUserState.initialCredits;
 
         for (let i = 0; i < uploadedFiles.length; i++) {
             const fileData = uploadedFiles[i];
@@ -441,19 +438,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 fileData.originalFilename = result.originalFilename;
                 updateFileStatusUI(i, 'completed', 100);
                 
-                currentUserState.initialCredits--;
                 successfulConversionCount++;
+                finalCreditCount--; // Decrement the final count for each success
 
             } catch (error) {
                 fileData.status = 'error';
                 fileData.message = error.message;
                 updateFileStatusUI(i, 'error', 0, error.message);
-                refundCredit();
+                refundCredit(); // Refund the temporary "displayed" credit
             }
-            licenseStatus.innerHTML = getCreditsMessage(currentUserState.initialCredits);
         }
         
         isConverting = false;
+        
+        // Update the master state and UI ONCE at the end
+        currentUserState.initialCredits = finalCreditCount;
+        licenseStatus.innerHTML = getCreditsMessage(currentUserState.initialCredits);
         
         if (successfulConversionCount > 0) {
             allConversionsComplete = true;
