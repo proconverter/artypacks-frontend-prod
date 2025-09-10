@@ -40,7 +40,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- ELEMENTS FOR DOWNLOAD CENTER VIEW ---
     const downloadCenterList = document.getElementById('download-center-list');
-    const downloadAllCenterBtn = document.getElementById('download-all-center-button');
     const convertAnotherCenterBtn = document.getElementById('convert-another-center-button');
 
     // --- STATE MANAGEMENT ---
@@ -79,7 +78,6 @@ document.addEventListener('DOMContentLoaded', () => {
         convertAnotherCenterBtn.addEventListener('click', returnToConverter);
 
         downloadAllBatchBtn.addEventListener('click', (event) => handleDownloadAll(lastSuccessfulConversions, event.target));
-        downloadAllCenterBtn.addEventListener('click', (event) => handleDownloadAll(fullConversionHistory.filter(f => f.status === 'active'), event.target));
     };
 
     // --- CORE LOGIC ---
@@ -257,25 +255,48 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!fullConversionHistory || fullConversionHistory.length === 0) {
             downloadCenterList.innerHTML = '<li>No conversion history found for this license.</li>';
-            downloadAllCenterBtn.style.display = 'none';
             return;
         }
         
-        const activeFiles = fullConversionHistory.filter(f => f.status === 'active');
-        
         fullConversionHistory.forEach(fileData => {
             const listItem = document.createElement('li');
-            let badgeHtml;
+            
+            const detailsDiv = document.createElement('div');
+            detailsDiv.className = 'download-center-file-details';
+
+            const filenameSpan = document.createElement('span');
+            filenameSpan.className = 'filename';
+            filenameSpan.textContent = fileData.originalFilename;
+            detailsDiv.appendChild(filenameSpan);
+
+            const actionDiv = document.createElement('div');
+            actionDiv.className = 'download-action';
+
             if (fileData.status === 'active') {
-                badgeHtml = `<a href="${fileData.downloadUrl}" class="status-badge active" download>Download</a>`;
+                const expiryInfo = formatExpiryTime(fileData.createdAt);
+                const expirySpan = document.createElement('span');
+                expirySpan.className = `expiry-info ${expiryInfo.urgency}`;
+                expirySpan.textContent = expiryInfo.text;
+                detailsDiv.appendChild(expirySpan);
+
+                const downloadLink = document.createElement('a');
+                downloadLink.href = fileData.downloadUrl;
+                downloadLink.className = 'status-badge active';
+                downloadLink.textContent = 'Download';
+                downloadLink.setAttribute('download', '');
+                actionDiv.appendChild(downloadLink);
+
             } else {
-                badgeHtml = `<span class="status-badge expired">Expired</span>`;
+                const expiredBadge = document.createElement('span');
+                expiredBadge.className = 'status-badge expired';
+                expiredBadge.textContent = 'Expired';
+                actionDiv.appendChild(expiredBadge);
             }
-            listItem.innerHTML = `<span class="filename">${fileData.originalFilename}</span>${badgeHtml}`;
+            
+            listItem.appendChild(detailsDiv);
+            listItem.appendChild(actionDiv);
             downloadCenterList.appendChild(listItem);
         });
-        
-        downloadAllCenterBtn.style.display = activeFiles.length > 1 ? 'inline-block' : 'none';
     }
 
     function returnToConverter() {
@@ -553,7 +574,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function handleDownloadAll(files, buttonElement) {
-        const activeFiles = files.filter(f => f.status === 'active' || f.downloadUrl);
+        const activeFiles = files.filter(f => f.downloadUrl);
         if (activeFiles.length < 2) return;
         const downloadUrls = activeFiles.map(file => file.downloadUrl);
         batchDownloadCounter++;
@@ -606,6 +627,29 @@ document.addEventListener('DOMContentLoaded', () => {
             button.textContent = originalText;
             button.disabled = false;
         }
+    }
+
+    function formatExpiryTime(createdAtIsoString) {
+        const createdAt = new Date(createdAtIsoString);
+        const expiryTime = new Date(createdAt.getTime() + 60 * 60 * 1000);
+        const now = new Date();
+        
+        const minutesRemaining = (expiryTime - now) / 1000 / 60;
+
+        let urgency = 'safe';
+        if (minutesRemaining < 5) {
+            urgency = 'danger';
+        } else if (minutesRemaining < 15) {
+            urgency = 'warn';
+        }
+
+        const options = { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true };
+        const formattedTime = new Intl.DateTimeFormat(navigator.language, options).format(expiryTime);
+
+        return {
+            text: `Expires on ${formattedTime} (local time)`,
+            urgency: urgency
+        };
     }
 
     const setupAccordion = () => {
