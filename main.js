@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- CONFIGURATION (FROM YOUR ORIGINAL) ---
+    // --- CONFIGURATION ---
     const VITE_CONVERT_API_ENDPOINT = "https://artypacks-backend-prod.onrender.com/convert";
     const VITE_CHECK_API_ENDPOINT = "https://artypacks-backend-prod.onrender.com/check-license";
     const VITE_RECOVER_SESSION_ENDPOINT = "https://artypacks-backend-prod.onrender.com/recover-session";
@@ -7,8 +7,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const ETSY_STORE_LINK = 'https://www.etsy.com/shop/artypacks';
     const MAX_MULTI_UPLOAD = 10;
 
-    // --- DOM ELEMENT SELECTORS (MERGED AND COMPLETE ) ---
-    const licenseKeyInput = document.getElementById('license-key');
+    // --- DOM ELEMENT SELECTORS ---
+    const licenseKeyInput = document.getElementById('license-key' );
     const licenseStatus = document.getElementById('license-status');
     const sessionRecoveryContainer = document.getElementById('session-recovery-link-container');
     const getLicenseLinkContainer = document.querySelector('.get-license-link');
@@ -23,9 +23,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const dropZoneError = document.getElementById('drop-zone-error');
     const fileUploadLabel = document.getElementById('file-upload-label');
 
-    // --- VIEWS (NEW AND CORRECTED) ---
-    // NOTE: You will need to add these IDs to your HTML
-    const singleDownloadView = document.getElementById('single-download-view'); 
+    // --- VIEWS ---
+    const singleDownloadView = document.getElementById('single-download-view');
     const batchDownloadView = document.getElementById('batch-download-view');
     const downloadCenterView = document.getElementById('download-center-view');
 
@@ -44,27 +43,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const downloadAllCenterBtn = document.getElementById('download-all-center-button');
     const convertAnotherCenterBtn = document.getElementById('convert-another-center-button');
 
-    // --- STATE MANAGEMENT (MERGED) ---
+    // --- STATE MANAGEMENT ---
     let uploadedFiles = [];
     let isLicenseValid = false;
     let validationController;
     let isConverting = false;
+    let allConversionsComplete = false; // <-- NEW STATE FOR "GO TO DOWNLOADS" FLOW
     let batchDownloadCounter = 0;
     let currentUserState = { type: 'none', credits: 0, initialCredits: 0 };
     let displayedCredits = 0;
-    let lastSuccessfulConversions = []; // For immediate success pages
-    let fullConversionHistory = []; // For the Download Center
+    let lastSuccessfulConversions = [];
+    let fullConversionHistory = [];
 
-    // --- INITIALIZATION (FROM YOUR ORIGINAL) ---
+    // --- INITIALIZATION & EVENT LISTENERS ---
     const initializeApp = () => {
         document.getElementById('current-year').textContent = new Date().getFullYear();
         setupEventListeners();
         checkLicenseAndToggleUI();
         setupContactForm();
-        setupAccordion();
     };
 
-    // --- EVENT LISTENERS (MERGED AND CORRECTED) ---
     const setupEventListeners = () => {
         licenseKeyInput.addEventListener('input', handleLicenseInput);
         dropZone.addEventListener('click', () => { if (!dropZone.classList.contains('disabled')) fileInput.click(); });
@@ -73,10 +71,9 @@ document.addEventListener('DOMContentLoaded', () => {
         dropZone.addEventListener('drop', handleDrop);
         fileInput.addEventListener('change', handleFileSelect);
         
-        // This button now ONLY starts the conversion
-        convertButton.addEventListener('click', handleBatchConversion);
+        // THIS IS THE FIX for the "Go to Downloads" button flow
+        convertButton.addEventListener('click', handleConversionOrNavigation);
 
-        // Listeners for the new view buttons
         convertAnotherSingleBtn.addEventListener('click', returnToConverter);
         convertAnotherBatchBtn.addEventListener('click', returnToConverter);
         convertAnotherCenterBtn.addEventListener('click', returnToConverter);
@@ -84,11 +81,26 @@ document.addEventListener('DOMContentLoaded', () => {
         downloadAllBatchBtn.addEventListener('click', (event) => handleDownloadAll(lastSuccessfulConversions, event.target));
         downloadAllCenterBtn.addEventListener('click', (event) => handleDownloadAll(fullConversionHistory.filter(f => f.status === 'active'), event.target));
         
-        // Listeners from your original file
+        // THIS IS THE FIX for the unclickable accordions
         setupAccordion();
     };
 
-    // --- CORE LOGIC (INTEGRATED) ---
+    // --- CORE LOGIC ---
+
+    // NEW FUNCTION to handle the dual-purpose main button
+    const handleConversionOrNavigation = () => {
+        if (allConversionsComplete) {
+            // If conversions are done, this button takes us to the success page
+            if (currentUserState.type === 'single_credit') {
+                showSingleSuccessView();
+            } else {
+                showBatchSuccessView();
+            }
+        } else {
+            // Otherwise, it starts the conversion process
+            handleBatchConversion();
+        }
+    };
 
     const handleLicenseInput = () => {
         if (validationController) validationController.abort();
@@ -170,7 +182,6 @@ document.addEventListener('DOMContentLoaded', () => {
         sessionRecoveryContainer.classList.add('hidden');
         checkLicenseAndToggleUI();
         updateFileList();
-        convertButton.textContent = 'Converting... Please Wait';
         
         let successfulConversionCount = 0;
 
@@ -198,19 +209,16 @@ document.addEventListener('DOMContentLoaded', () => {
         isConverting = false;
         
         if (successfulConversionCount > 0) {
-            if (currentUserState.type === 'single_credit') {
-                showSingleSuccessView();
-            } else {
-                showBatchSuccessView();
-            }
+            // THIS IS THE FIX: Set the state and update the button text
+            allConversionsComplete = true;
         } else {
             alert("All conversions failed. Your credits have been refunded.");
-            checkLicenseAndToggleUI();
-            updateFileList();
         }
+        checkLicenseAndToggleUI();
+        updateFileList();
     }
 
-    // --- VIEW SWITCHING LOGIC (NEW) ---
+    // --- VIEW SWITCHING LOGIC ---
 
     function showSingleSuccessView() {
         appTool.classList.add('hidden');
@@ -284,6 +292,7 @@ document.addEventListener('DOMContentLoaded', () => {
         uploadedFiles = [];
         lastSuccessfulConversions = [];
         isConverting = false;
+        allConversionsComplete = false; // Reset the flow
         fileInput.value = '';
         
         updateFileList();
@@ -298,13 +307,14 @@ document.addEventListener('DOMContentLoaded', () => {
         fullConversionHistory = [];
         isLicenseValid = false;
         isConverting = false;
+        allConversionsComplete = false; // Reset the flow
         currentUserState = { type: 'none', credits: 0, initialCredits: 0 };
         displayedCredits = 0;
         sessionRecoveryContainer.classList.add('hidden');
         sessionRecoveryContainer.innerHTML = '';
     }
 
-    // --- HELPER FUNCTIONS (FROM YOUR ORIGINAL, VERIFIED COMPLETE) ---
+    // --- HELPER FUNCTIONS ---
     const handleDrop = (e) => { e.preventDefault(); if (dropZone.classList.contains('disabled')) return; dropZone.classList.remove('dragover'); processFiles(e.dataTransfer.files); };
     const handleFileSelect = (e) => processFiles(e.target.files);
 
@@ -316,11 +326,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const checkLicenseAndToggleUI = () => {
         const creditsAvailable = displayedCredits;
-        const isDropZoneLocked = !isLicenseValid || creditsAvailable <= 0 || isConverting;
+        const isDropZoneLocked = !isLicenseValid || creditsAvailable <= 0 || isConverting || allConversionsComplete;
         
         dropZone.classList.toggle('disabled', isDropZoneLocked);
         
-        if ((isLicenseValid && currentUserState.initialCredits <= 0)) {
+        if ((isLicenseValid && currentUserState.initialCredits <= 0) || allConversionsComplete) {
             getLicenseLinkContainer.classList.add('hidden');
         } else {
             getLicenseLinkContainer.classList.remove('hidden');
@@ -332,22 +342,33 @@ document.addEventListener('DOMContentLoaded', () => {
             activationNotice.textContent = 'Converter locked – enter license key above.';
             dropZoneText.innerHTML = '<strong>Drag & drop your Procreate file here</strong>';
             dropZoneLimits.textContent = 'or click to upload';
+            convertButton.textContent = 'Convert Your Brushset';
         } else if (isConverting) {
             dropZone.title = 'Conversion in progress...';
             activationNotice.style.display = 'none';
             dropZoneText.innerHTML = '<strong>Processing your files...</strong>';
             dropZoneLimits.textContent = 'Please wait for all conversions to complete.';
+            convertButton.textContent = 'Converting... Please Wait';
+        } else if (allConversionsComplete) {
+            // THIS IS THE FIX: Update UI for the "Go to Downloads" state
+            dropZone.title = 'Conversions complete.';
+            activationNotice.style.display = 'none';
+            dropZoneText.innerHTML = '<strong>All conversions are complete.</strong>';
+            dropZoneLimits.textContent = "Click 'Go to Downloads' to get your files.";
+            convertButton.textContent = 'Go to Downloads';
         } else if (currentUserState.initialCredits <= 0) {
             dropZone.title = 'This license has no credits remaining.';
             activationNotice.style.display = 'block';
             activationNotice.textContent = 'No credits remaining on this license.';
             dropZoneText.innerHTML = '<strong>No credits remaining</strong>';
             dropZoneLimits.textContent = 'Please get a new license to convert more files.';
+            convertButton.textContent = 'Convert Your Brushset';
         } else if (creditsAvailable <= 0) {
             dropZone.title = 'You have used all available slots for your credits.';
             activationNotice.style.display = 'none';
             dropZoneText.innerHTML = '<strong>Your queue is full.</strong>';
             dropZoneLimits.textContent = 'You are using all your available credits.';
+            convertButton.textContent = 'Convert Your Brushset';
         } else {
             dropZone.title = '';
             activationNotice.style.display = 'none';
@@ -364,9 +385,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 fileUploadLabel.textContent = 'Upload Your .brushset File';
                 fileInput.removeAttribute('multiple');
             }
+            convertButton.textContent = 'Convert Your Brushset';
         }
 
-        convertButton.disabled = !(isLicenseValid && uploadedFiles.length > 0 && !isConverting);
+        convertButton.disabled = !((isLicenseValid && uploadedFiles.length > 0 && !isConverting) || allConversionsComplete);
     };
 
     const processFiles = (files) => {
@@ -525,112 +547,3 @@ document.addEventListener('DOMContentLoaded', () => {
             progressBar.style.display = 'block';
             progressBarFill.style.width = `${progress}%`;
         } else if (status === 'completed') {
-            statusBadge.textContent = 'Ready';
-            progressBar.style.display = 'none';
-        } else if (status === 'error') {
-            statusBadge.textContent = 'Error';
-            listItem.title = message;
-        } else {
-            statusBadge.textContent = status.charAt(0).toUpperCase() + status.slice(1);
-        }
-    }
-
-    async function handleDownloadAll(files, buttonElement) {
-        const activeFiles = files.filter(f => f.status === 'active' || f.downloadUrl);
-        if (activeFiles.length < 2) return;
-        const downloadUrls = activeFiles.map(file => file.downloadUrl);
-        batchDownloadCounter++;
-        const button = buttonElement;
-        const originalText = button.textContent;
-        button.textContent = 'Zipping...';
-        button.disabled = true;
-        try {
-            const response = await fetch(VITE_DOWNLOAD_ALL_ENDPOINT, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    licenseKey: licenseKeyInput.value.trim(),
-                    urls: downloadUrls,
-                    batchCounter: batchDownloadCounter
-                }),
-            });
-
-            if (!response.ok) {
-                const errorResult = await response.json();
-                throw new Error(errorResult.message || 'Failed to create ZIP file.');
-            }
-
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-
-            const contentDisposition = response.headers.get('content-disposition');
-            let downloadName;
-            if (contentDisposition && contentDisposition.indexOf('attachment') !== -1) {
-                const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
-                const matches = filenameRegex.exec(contentDisposition);
-                if (matches != null && matches[1]) { 
-                  downloadName = matches[1].replace(/['"]/g, '');
-                }
-            }
-            
-            link.download = downloadName || `ArtyPacks.app_Batch_${batchDownloadCounter}.zip`;
-            
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
-
-        } catch (error) {
-            console.error('Download All Error:', error);
-            alert(`Could not download all files: ${error.message}`);
-        } finally {
-            button.textContent = originalText;
-            button.disabled = false;
-        }
-    }
-
-    // --- UNTOUCHED FUNCTIONS FROM YOUR ORIGINAL FILE ---
-    const setupAccordion = () => {
-        document.querySelectorAll('.accordion-question, .footer-accordion-trigger').forEach(trigger => {
-            trigger.addEventListener('click', (e) => {
-                const item = e.currentTarget.closest('.accordion-item, .footer-accordion-item');
-                if (item) item.classList.toggle('open');
-            });
-        });
-    };
-
-    const setupContactForm = () => {
-        const contactForm = document.getElementById('contact-form');
-        if (!contactForm) return;
-        const formStatus = document.getElementById('form--status');
-        
-        contactForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(contactForm);
-            
-            try {
-                const response = await fetch(contactForm.action, { 
-                    method: 'POST', 
-                    body: formData, 
-                    headers: { 'Accept': 'application/json' } 
-                });
-                
-                if (response.ok) {
-                    formStatus.style.display = 'flex';
-                    contactForm.reset();
-                    setTimeout(() => { formStatus.style.display = 'none'; }, 5000);
-                } else {
-                    throw new Error('Form submission failed.');
-                }
-            } catch (error) {
-                console.error('Contact form error:', error);
-                alert('Sorry, there was an issue sending your message. Please try again later.');
-            }
-        });
-    };
-
-    // --- START THE APP ---
-    initializeApp();
-});
