@@ -61,7 +61,6 @@ document.addEventListener('DOMContentLoaded', () => {
         setupEventListeners();
         checkLicenseAndToggleUI();
         setupContactForm();
-        // THIS IS THE FIX for the accordions. It must be called here.
         setupAccordion();
     };
 
@@ -148,6 +147,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function checkAndPrepareDownloadCenterLink(key) {
+        sessionRecoveryContainer.classList.add('hidden');
+        sessionRecoveryContainer.innerHTML = '';
         try {
             const response = await fetch(VITE_RECOVER_SESSION_ENDPOINT, {
                 method: 'POST',
@@ -254,7 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         downloadCenterList.innerHTML = '';
 
-        if (fullConversionHistory.length === 0) {
+        if (!fullConversionHistory || fullConversionHistory.length === 0) {
             downloadCenterList.innerHTML = '<li>No conversion history found for this license.</li>';
             downloadAllCenterBtn.style.display = 'none';
             return;
@@ -306,6 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
         displayedCredits = 0;
         sessionRecoveryContainer.classList.add('hidden');
         sessionRecoveryContainer.innerHTML = '';
+        updateFileList();
     }
 
     // --- HELPER FUNCTIONS ---
