@@ -40,6 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let batchDownloadCounter = 0;
     let currentUserState = { type: 'none', credits: 0, initialCredits: 0 };
     let displayedCredits = 0;
+    let downloadCenterFiles = []; // To store files for the download center
 
     // --- INITIALIZATION ---
     const initializeApp = () => {
@@ -66,10 +67,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- CORE FUNCTIONS ---
     async function handleDownloadAll() {
-        const successfulFiles = uploadedFiles.filter(f => f.status === 'completed');
-        if (successfulFiles.length < 2) return;
+        const activeFiles = downloadCenterFiles.filter(f => f.status === 'active');
+        if (activeFiles.length < 2) return;
 
-        const downloadUrls = successfulFiles.map(file => file.downloadUrl);
+        const downloadUrls = activeFiles.map(file => file.downloadUrl);
         
         batchDownloadCounter++;
         downloadAllButton.textContent = 'Zipping...';
@@ -124,12 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const handleConversionOrNavigation = () => {
         if (allConversionsComplete) {
-            const successfulConversions = uploadedFiles.filter(f => f.status === 'completed');
-            if (currentUserState.type === 'single_credit' && successfulConversions.length === 1) {
-                showDownloadView(successfulConversions[0].downloadUrl, successfulConversions[0].originalFilename);
-            } else {
-                showDownloadSessionView();
-            }
+            recoverSession(licenseKeyInput.value.trim());
         } else {
             handleBatchConversion();
         }
@@ -168,15 +164,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (sessionResponse.ok) {
                 const sessionData = await sessionResponse.json();
-                if (sessionData.session_type === 'multi') {
-                    uploadedFiles = sessionData.files.map(file => ({
-                        ...file,
-                        status: 'completed'
-                    }));
-                    showDownloadSessionView();
-                } else if (sessionData.session_type === 'single') {
-                    showDownloadView(sessionData.download_url, sessionData.original_filename);
-                }
+                downloadCenterFiles = sessionData.files; // Store the rich data
+                showDownloadSessionView();
             } else {
                 alert('Could not find a recent download session.');
             }
@@ -217,12 +206,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 if (sessionResponse.ok) {
-                    sessionRecoveryContainer.innerHTML = `<a href="#" id="recover-link">Forgot to download your last session? Click here.</a>`;
-                    sessionRecoveryContainer.classList.remove('hidden');
-                    document.getElementById('recover-link').addEventListener('click', (e) => {
-                        e.preventDefault();
-                        recoverSession(key);
-                    });
+                    const sessionData = await sessionResponse.json();
+                    if (sessionData.files && sessionData.files.length > 0) {
+                        sessionRecoveryContainer.innerHTML = `You have recent downloads. <a href="#" id="recover-link"><strong>View your Download Center.</strong></a>`;
+                        sessionRecoveryContainer.classList.remove('hidden');
+                        document.getElementById('recover-link').addEventListener('click', (e) => {
+                            e.preventDefault();
+                            recoverSession(key);
+                        });
+                    }
                 }
             } else {
                 isLicenseValid = false;
@@ -424,7 +416,6 @@ document.addEventListener('DOMContentLoaded', () => {
         convertButton.textContent = 'Converting... Please Wait';
         
         let successfulConversionCount = 0;
-        let finalCreditCount = currentUserState.initialCredits;
 
         for (let i = 0; i < uploadedFiles.length; i++) {
             const fileData = uploadedFiles[i];
@@ -439,21 +430,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateFileStatusUI(i, 'completed', 100);
                 
                 successfulConversionCount++;
-                finalCreditCount--; // Decrement the final count for each success
+                currentUserState.initialCredits--;
+                licenseStatus.innerHTML = getCreditsMessage(currentUserState.initialCredits);
 
             } catch (error) {
                 fileData.status = 'error';
                 fileData.message = error.message;
                 updateFileStatusUI(i, 'error', 0, error.message);
-                refundCredit(); // Refund the temporary "displayed" credit
+                refundCredit();
             }
         }
         
         isConverting = false;
-        
-        // Update the master state and UI ONCE at the end
-        currentUserState.initialCredits = finalCreditCount;
-        licenseStatus.innerHTML = getCreditsMessage(currentUserState.initialCredits);
         
         if (successfulConversionCount > 0) {
             allConversionsComplete = true;
@@ -534,28 +522,42 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     };
 
+    // --- THE FINAL DOWNLOAD CENTER LOGIC ---
     const showDownloadSessionView = () => {
         appTool.classList.add('hidden');
         downloadView.classList.add('hidden');
         downloadSessionView.classList.remove('hidden');
         downloadSessionList.innerHTML = '';
-        const successfulFiles = uploadedFiles.filter(f => f.status === 'completed');
-        successfulFiles.forEach(fileData => {
+        
+        const activeFiles = downloadCenterFiles.filter(f => f.status === 'active');
+        
+        downloadCenterFiles.forEach(fileData => {
             const listItem = document.createElement('li');
+            
             const filenameSpan = document.createElement('span');
             filenameSpan.className = 'filename';
             filenameSpan.textContent = fileData.originalFilename;
-            const downloadLink = document.createElement('a');
-            downloadLink.className = 'download-link';
-            downloadLink.textContent = 'Download';
-            downloadLink.onclick = () => {
-                triggerDownload(fileData.downloadUrl, fileData.originalFilename);
-            };
             listItem.appendChild(filenameSpan);
-            listItem.appendChild(downloadLink);
+
+            if (fileData.status === 'active') {
+                const downloadLink = document.createElement('a');
+                downloadLink.className = 'status-badge active';
+                downloadLink.textContent = 'Download';
+                downloadLink.onclick = () => {
+                    triggerDownload(fileData.downloadUrl, fileData.originalFilename);
+                };
+                listItem.appendChild(downloadLink);
+            } else {
+                const expiredBadge = document.createElement('span');
+                expiredBadge.className = 'status-badge expired';
+                expiredBadge.textContent = 'Expired';
+                listItem.appendChild(expiredBadge);
+            }
+            
             downloadSessionList.appendChild(listItem);
         });
-        downloadAllButton.style.display = successfulFiles.length > 1 ? 'inline-block' : 'none';
+        
+        downloadAllButton.style.display = activeFiles.length > 1 ? 'inline-block' : 'none';
     };
 
     const triggerDownload = (url, filename) => {
@@ -575,6 +577,7 @@ document.addEventListener('DOMContentLoaded', () => {
         downloadView.classList.add('hidden');
         downloadSessionView.classList.add('hidden');
         uploadedFiles = [];
+        downloadCenterFiles = [];
         isConverting = false;
         allConversionsComplete = false;
         fileInput.value = '';
