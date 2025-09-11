@@ -49,7 +49,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let isConverting = false;
     let allConversionsComplete = false;
     let currentUserState = { type: 'none', credits: 0, initialCredits: 0 };
-    let displayedCredits = 0;
 
     // --- INITIALIZATION ---
     const initializeApp = () => {
@@ -68,15 +67,12 @@ document.addEventListener('DOMContentLoaded', () => {
         fileInput.addEventListener('change', handleFileSelect);
         convertButton.addEventListener('click', handleConversionOrNavigation);
         
-        // Reset/navigation buttons
-        convertAnotherSingleBtn.addEventListener('click', resetApp);
-        convertAnotherBatchBtn.addEventListener('click', resetApp);
-        backToConverterCenterBtn.addEventListener('click', resetApp);
+        convertAnotherSingleBtn.addEventListener('click', partialReset);
+        convertAnotherBatchBtn.addEventListener('click', partialReset);
+        backToConverterCenterBtn.addEventListener('click', partialReset);
 
-        // Download buttons
         downloadAllBatchBtn.addEventListener('click', handleDownloadAllBatch);
 
-        // Accordions
         document.querySelectorAll('.accordion-question, .footer-accordion-trigger').forEach(trigger => {
             trigger.addEventListener('click', (e) => {
                 const item = e.currentTarget.closest('.accordion-item, .footer-accordion-item');
@@ -84,7 +80,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // Contact Form
         const contactForm = document.getElementById('contact-form');
         if (contactForm) {
             const formStatus = document.getElementById('form-status');
@@ -117,7 +112,6 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (currentUserState.type === 'multi_credit' && successfulFiles.length > 0) {
                 showBatchDownloadView(successfulFiles);
             } else {
-                // Fallback for edge cases, like if all files failed but the state was set
                 recoverSession(licenseKeyInput.value.trim());
             }
         } else {
@@ -129,7 +123,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (validationController) validationController.abort();
         isLicenseValid = false;
         currentUserState = { type: 'none', credits: 0, initialCredits: 0 };
-        displayedCredits = 0;
         sessionRecoveryContainer.classList.add('hidden');
         sessionRecoveryContainer.innerHTML = '';
         checkLicenseAndToggleUI();
@@ -171,12 +164,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function validateLicenseWithRetries(key) {
+    async function validateLicenseWithRetries(key, isSilent = false) {
         if (validationController) validationController.abort();
         validationController = new AbortController();
         const signal = validationController.signal;
-        licenseStatus.className = 'license-status-message checking';
-        licenseStatus.textContent = 'Validating...';
+        
+        if (!isSilent) {
+            licenseStatus.className = 'license-status-message checking';
+            licenseStatus.textContent = 'Validating...';
+        }
+
         try {
             const response = await fetch(VITE_CHECK_API_ENDPOINT, {
                 method: 'POST',
@@ -191,38 +188,45 @@ document.addEventListener('DOMContentLoaded', () => {
                 isLicenseValid = true;
                 currentUserState.type = result.user_type;
                 currentUserState.credits = result.sessions_remaining;
-                currentUserState.initialCredits = result.sessions_remaining;
-                displayedCredits = result.sessions_remaining;
+                if (!isConverting) { // Only set initial credits if not in the middle of converting
+                    currentUserState.initialCredits = result.sessions_remaining;
+                }
                 licenseStatus.className = 'license-status-message valid';
-                licenseStatus.innerHTML = getCreditsMessage(displayedCredits);
+                licenseStatus.innerHTML = getCreditsMessage(result.sessions_remaining);
 
-                const sessionResponse = await fetch(VITE_RECOVER_SESSION_ENDPOINT, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ licenseKey: key })
-                });
+                if (!isSilent) {
+                    const sessionResponse = await fetch(VITE_RECOVER_SESSION_ENDPOINT, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ licenseKey: key })
+                    });
 
-                if (sessionResponse.ok) {
-                    const sessionData = await sessionResponse.json();
-                    if (sessionData.files && sessionData.files.length > 0) {
-                        sessionRecoveryContainer.innerHTML = `You have previous conversions. <a href="#" id="recover-link"><strong>Go to Download Center.</strong></a>`;
-                        sessionRecoveryContainer.classList.remove('hidden');
-                        document.getElementById('recover-link').addEventListener('click', (e) => {
-                            e.preventDefault();
-                            recoverSession(key);
-                        });
+                    if (sessionResponse.ok) {
+                        const sessionData = await sessionResponse.json();
+                        if (sessionData.files && sessionData.files.length > 0) {
+                            sessionRecoveryContainer.innerHTML = `You have previous conversions. <a href="#" id="recover-link"><strong>Go to Download Center.</strong></a>`;
+                            sessionRecoveryContainer.classList.remove('hidden');
+                            document.getElementById('recover-link').addEventListener('click', (e) => {
+                                e.preventDefault();
+                                recoverSession(key);
+                            });
+                        }
                     }
                 }
             } else {
                 isLicenseValid = false;
-                licenseStatus.className = 'license-status-message invalid';
-                licenseStatus.innerHTML = result.message || 'Invalid license key.';
+                if (!isSilent) {
+                    licenseStatus.className = 'license-status-message invalid';
+                    licenseStatus.innerHTML = result.message || 'Invalid license key.';
+                }
             }
         } catch (error) {
             if (signal.aborted) return;
             isLicenseValid = false;
-            licenseStatus.className = 'license-status-message invalid';
-            licenseStatus.textContent = 'A server error occurred while validating the license.';
+            if (!isSilent) {
+                licenseStatus.className = 'license-status-message invalid';
+                licenseStatus.textContent = 'A server error occurred while validating the license.';
+            }
         } finally {
             if (!signal.aborted) {
                 checkLicenseAndToggleUI();
@@ -234,12 +238,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const handleFileSelect = (e) => processFiles(e.target.files);
 
     const checkLicenseAndToggleUI = () => {
-        const creditsAvailable = displayedCredits - uploadedFiles.filter(f => f.status !== 'error').length;
+        const creditsAvailable = currentUserState.credits - uploadedFiles.filter(f => f.status !== 'error').length;
         const isDropZoneLocked = !isLicenseValid || creditsAvailable <= 0 || isConverting || allConversionsComplete;
         
         dropZone.classList.toggle('disabled', isDropZoneLocked);
         
-        if ((isLicenseValid && currentUserState.initialCredits <= 0) || allConversionsComplete) {
+        if ((isLicenseValid && currentUserState.credits <= 0 && !isConverting) || allConversionsComplete) {
             getLicenseLinkContainer.classList.add('hidden');
         } else {
             getLicenseLinkContainer.classList.remove('hidden');
@@ -261,7 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
             activationNotice.style.display = 'none';
             dropZoneText.innerHTML = '<strong>All conversions are complete.</strong>';
             dropZoneLimits.textContent = "Click 'Go to Downloads' to get your files.";
-        } else if (currentUserState.initialCredits <= 0) {
+        } else if (currentUserState.credits <= 0) {
             dropZone.title = 'This license has no credits remaining.';
             activationNotice.style.display = 'block';
             activationNotice.textContent = 'No credits remaining on this license.';
@@ -301,7 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
         dropZoneError.style.display = 'none';
         dropZoneError.textContent = '';
         const filesToAdd = Array.from(files);
-        const creditsAvailable = displayedCredits - uploadedFiles.filter(f => f.status !== 'error').length;
+        const creditsAvailable = currentUserState.credits - uploadedFiles.filter(f => f.status !== 'error').length;
         
         if (filesToAdd.length > creditsAvailable) {
             dropZoneError.textContent = `Error: This would exceed your credit limit. You have ${creditsAvailable} credits remaining.`;
@@ -381,11 +385,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const removeFile = (indexToRemove) => {
-        const fileData = uploadedFiles[indexToRemove];
-        // Only refund credit if the file hasn't been successfully converted
-        if (fileData.status === 'queued' || fileData.status === 'error') {
-            // No credit logic here, just UI update
-        }
         uploadedFiles.splice(indexToRemove, 1);
         fileInput.value = '';
         dropZoneError.style.display = 'none';
@@ -413,6 +412,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 fileData.originalFilename = result.originalFilename;
                 updateFileStatusUI(i, 'completed', 100);
                 successfulConversionCount++;
+                
+                // --- THIS IS THE FIX ---
+                // Silently re-validate the license to get the new credit count and update the UI
+                await validateLicenseWithRetries(licenseKeyInput.value.trim(), true);
+
             } catch (error) {
                 fileData.status = 'error';
                 fileData.message = error.message;
@@ -425,14 +429,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (successfulConversionCount > 0) {
             allConversionsComplete = true;
             convertButton.textContent = 'Go to Downloads';
-            // This is the fix: We wait for the user to click the button.
-            // We do NOT automatically redirect here.
         } else {
             alert("All conversions failed. Please check the errors and try again.");
         }
         
-        // Refresh license status after conversion batch is done
-        validateLicenseWithRetries(licenseKeyInput.value.trim());
         checkLicenseAndToggleUI();
         updateFileList();
     }
@@ -587,9 +587,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const triggerDownload = (url, filename) => {
         const link = document.createElement('a');
         link.href = url;
-        // The backend now provides a correctly named zip file, so we don't need to construct the name here.
-        // We can let the browser use the name from the Content-Disposition header.
-        // link.download = `ArtyPacks.app_${filename.replace(/\.brushset$/, '')}.zip`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -664,25 +661,17 @@ document.addEventListener('DOMContentLoaded', () => {
         return { text: `Expires in ${Math.floor(diffMinutes)}m`, className: 'safe' };
     };
 
-    const resetApp = () => {
-        if (validationController) validationController.abort();
-        
+    const partialReset = () => {
         showView(appTool);
         
         uploadedFiles = [];
         isConverting = false;
         allConversionsComplete = false;
         fileInput.value = '';
-        licenseKeyInput.value = '';
-        licenseStatus.innerHTML = '';
-        isLicenseValid = false;
-        currentUserState = { type: 'none', credits: 0, initialCredits: 0 };
-        displayedCredits = 0;
         
+        // Re-validate the license to show the updated credit count and history link
+        validateLicenseWithRetries(licenseKeyInput.value.trim());
         updateFileList();
-        checkLicenseAndToggleUI();
-        sessionRecoveryContainer.classList.add('hidden');
-        sessionRecoveryContainer.innerHTML = '';
     };
 
     // --- START THE APP ---
