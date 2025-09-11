@@ -796,6 +796,24 @@ a { color: #007bff; text-decoration: none; font-weight: 700; }
 .expiry-info.warn { color: #f97316; }
 .expiry-info.danger { color: #dc2626; }
 
-.download-action {
-    flex-shrink: 0; /* Prevents the button from shrinking */
+
+/* =============================================== */
+/* --- FIX FOR DOWNLOAD CENTER SPACING (v3.1) ---  */
+/* =============================================== */
+
+/* This targets the container for the status text and button */
+.download-status-container {
+    display: flex;          /* Use flexbox for alignment */
+    align-items: center;    /* Vertically align items in the middle */
+    justify-content: flex-end; /* Push items to the right edge */
+    gap: 12px;              /* THIS IS THE KEY: Adds 12px of space between the items */
+    flex-shrink: 0;         /* Prevents the container from shrinking on small screens */
+}
+
+/* This ensures the filename doesn't get pushed out */
+#download-center-list li .filename {
+    flex-grow: 1;           /* Allows the filename to take up available space */
+    text-align: left;
+    word-break: break-all;
+    padding-right: 15px;
 }
