@@ -629,7 +629,7 @@ a { color: #007bff; text-decoration: none; font-weight: 700; }
     width: 100%;
 }
 
-#batch-download-list li, #download-center-list li {
+#batch-download-list li {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -783,53 +783,54 @@ a { color: #007bff; text-decoration: none; font-weight: 700; }
 
 
 /* ================================================================== */
-/* --- COMBINED & CORRECTED DOWNLOAD CENTER FIXES (v3.3) ---          */
+/* --- FINAL & CORRECTED DOWNLOAD CENTER LAYOUT (v3.4) ---            */
 /* ================================================================== */
 
-/* This targets the container for the status text and button */
-.download-status-container {
+/* 1. Force each list item to be a flex column */
+#download-center-list li {
     display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 12px;
-    flex-shrink: 0;
+    flex-direction: column; /* Stack children vertically */
+    align-items: flex-start; /* Align children to the left */
+    gap: 4px; /* Add a small gap between the filename and the status line */
 }
 
-/* This targets the filename span inside the list items */
-#batch-download-list .filename,
-#download-center-list .filename {
-    /* --- Word Break Fix --- */
-    word-break: break-word; 
+/* 2. Make the filename take the full width and handle wrapping */
+#download-center-list li .filename {
+    width: 100%;
+    text-align: left;
+    word-break: break-all; 
     overflow-wrap: break-word;
-
-    /* --- Hyphenation for better line breaks --- */
     -webkit-hyphens: auto;
     -ms-hyphens: auto;
     hyphens: auto;
+    padding-right: 0; 
+}
 
-    /* --- Layout styles --- */
-    flex-grow: 1;
+/* This rule is for the batch download page, to keep it as it was */
+#batch-download-list .filename {
     text-align: left;
+    word-break: break-all;
     padding-right: 15px;
 }
 
-/* This specifically targets the list items that contain an EXPIRED file */
-@media (max-width: 480px) {
-    #download-center-list li:has(.status-badge.expired) {
-        /* On smaller screens, allow items to stack vertically */
-        flex-wrap: wrap; 
-    }
 
-    /* When an expired item wraps, ensure the filename and status are on separate lines */
-    #download-center-list li:has(.status-badge.expired) .filename,
-    #download-center-list li:has(.status-badge.expired) .download-status-container {
-        /* Make each take up the full width so they stack neatly */
-        flex-basis: 100%; 
-    }
+/* 3. Make the status container a full-width row with space between items */
+#download-center-list li .download-status-container {
+    display: flex;
+    justify-content: space-between; /* Pushes children to opposite ends */
+    align-items: center;
+    width: 100%; /* Ensure it takes the full width */
+    gap: 12px; /* Keep a gap for safety */
+}
 
-    /* Align the text of the expired status to the left on mobile for consistency */
-    #download-center-list li:has(.status-badge.expired) .download-status-container {
-        justify-content: flex-start;
-        margin-top: 4px; /* Add a little space when it stacks */
-    }
+/* 4. Ensure the expiry info stays left */
+#download-center-list li .expiry-info {
+    flex-grow: 1; /* Allows it to take up available space */
+    text-align: left; /* Explicitly align text to the left */
+    white-space: nowrap; /* Prevent the status text itself from wrapping */
+}
+
+/* 5. Ensure the button stays right */
+#download-center-list li .status-badge {
+    flex-shrink: 0; /* Prevent the button from shrinking */
 }
