@@ -6,6 +6,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const VITE_DOWNLOAD_ALL_ENDPOINT = "https://artypacks-backend-prod.onrender.com/download-all";
     const ETSY_STORE_LINK = 'https://www.etsy.com/shop/artypacks';
     const MAX_MULTI_UPLOAD = 10;
+    // --- NECESSARY ADDITION: MAX FILE SIZE IN BYTES (35MB ) ---
+    const MAX_FILE_SIZE = 35 * 1024 * 1024;
 
     // --- DOM ELEMENT SELECTORS ---
     const licenseKeyInput = document.getElementById('license-key' );
@@ -325,10 +327,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         for (const file of filesToAdd) {
+            // --- NECESSARY CHANGE #1: ADD FILE SIZE VALIDATION HERE ---
+            if (file.size > MAX_FILE_SIZE) {
+                dropZoneError.textContent = `Error: "${file.name}" is too large. The maximum file size is 35MB.`;
+                dropZoneError.style.display = 'block';
+                continue; // Skip this oversized file
+            }
+            // --------------------------------------------------------
+
             if (file.name.endsWith('.brushset')) {
                 uploadedFiles.push({ file: file, status: 'queued', downloadUrl: '', originalFilename: '', message: '' });
             } else {
-                alert(`Invalid file type: ${file.name}. Only .brushset files are allowed.`);
+                // This alert is fine, but using the dropZoneError would be more consistent
+                dropZoneError.textContent = `Invalid file type: "${file.name}". Only .brushset files are allowed.`;
+                dropZoneError.style.display = 'block';
             }
         }
         updateFileList();
@@ -413,8 +425,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateFileStatusUI(i, 'completed', 100);
                 successfulConversionCount++;
                 
-                // --- THIS IS THE FIX ---
-                // Silently re-validate the license to get the new credit count and update the UI
                 await validateLicenseWithRetries(licenseKeyInput.value.trim(), true);
 
             } catch (error) {
@@ -430,7 +440,10 @@ document.addEventListener('DOMContentLoaded', () => {
             allConversionsComplete = true;
             convertButton.textContent = 'Go to Downloads';
         } else {
-            alert("All conversions failed. Please check the errors and try again.");
+            // --- NECESSARY CHANGE #2: REMOVE GENERIC ALERT ---
+            // The specific error is already shown in the file list.
+            // alert("All conversions failed. Please check the errors and try again.");
+            // ------------------------------------------------
         }
         
         checkLicenseAndToggleUI();
@@ -458,7 +471,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         updateFileStatusUI(index, 'converting', 100);
                         resolve(result);
                     } else {
-                        reject(new Error(result.message || 'An unknown error occurred.'));
+                        // --- NECESSARY CHANGE #3: IMPROVE ERROR HANDLING ---
+                        // Use the specific error message from the backend.
+                        reject(new Error(result.message || 'An unknown server error occurred.'));
+                        // ----------------------------------------------------
                     }
                 } catch (e) {
                     reject(new Error('An unexpected server response was received.'));
