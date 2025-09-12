@@ -327,18 +327,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         for (const file of filesToAdd) {
-            // --- NECESSARY CHANGE #1: ADD FILE SIZE VALIDATION HERE ---
+            // --- FINAL, IMPROVED FILE SIZE VALIDATION ---
             if (file.size > MAX_FILE_SIZE) {
-                dropZoneError.textContent = `Error: "${file.name}" is too large. The maximum file size is 35MB.`;
+                const fileSizeMB = (file.size / 1024 / 1024).toFixed(1);
+                const maxFileSizeMB = (MAX_FILE_SIZE / 1024 / 1024).toFixed(0);
+                dropZoneError.innerHTML = `File too large: "${file.name}" (${fileSizeMB}MB) exceeds the ${maxFileSizeMB}MB limit.  
+Click the upload area to try again with a smaller file.`;
                 dropZoneError.style.display = 'block';
                 continue; // Skip this oversized file
             }
-            // --------------------------------------------------------
+            // ---------------------------------------------
 
             if (file.name.endsWith('.brushset')) {
                 uploadedFiles.push({ file: file, status: 'queued', downloadUrl: '', originalFilename: '', message: '' });
             } else {
-                // This alert is fine, but using the dropZoneError would be more consistent
                 dropZoneError.textContent = `Invalid file type: "${file.name}". Only .brushset files are allowed.`;
                 dropZoneError.style.display = 'block';
             }
@@ -440,10 +442,7 @@ document.addEventListener('DOMContentLoaded', () => {
             allConversionsComplete = true;
             convertButton.textContent = 'Go to Downloads';
         } else {
-            // --- NECESSARY CHANGE #2: REMOVE GENERIC ALERT ---
-            // The specific error is already shown in the file list.
-            // alert("All conversions failed. Please check the errors and try again.");
-            // ------------------------------------------------
+            // The generic alert is removed, as specific errors are now shown in the file list.
         }
         
         checkLicenseAndToggleUI();
@@ -471,10 +470,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         updateFileStatusUI(index, 'converting', 100);
                         resolve(result);
                     } else {
-                        // --- NECESSARY CHANGE #3: IMPROVE ERROR HANDLING ---
+                        // --- FINAL, IMPROVED ERROR HANDLING ---
                         // Use the specific error message from the backend.
                         reject(new Error(result.message || 'An unknown server error occurred.'));
-                        // ----------------------------------------------------
+                        // --------------------------------------
                     }
                 } catch (e) {
                     reject(new Error('An unexpected server response was received.'));
