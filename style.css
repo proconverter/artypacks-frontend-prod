@@ -96,6 +96,14 @@ a { color: #007bff; text-decoration: none; font-weight: 700; }
     color: #0056b3;
 }
 
+/* 
+  Use this utility class to hide elements during the private beta 
+  without breaking JavaScript that targets them.
+*/
+.beta-hidden {
+    display: none !important;
+}
+
 /* --- CTA Buttons --- */
 .cta-button {
     display: inline-block; background-color: #007bff; color: #ffffff;
